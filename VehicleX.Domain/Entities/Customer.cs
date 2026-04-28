@@ -12,6 +12,8 @@ public class Customer
 
     public string? Address { get; set; }
 
+    public string? PasswordHash { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
