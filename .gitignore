@@ -62,6 +62,7 @@ $RECYCLE.BIN/
 *~
 
 ## Environment / config overrides
+.env
 appsettings.Development.json
 appsettings.Local.json
 *.env

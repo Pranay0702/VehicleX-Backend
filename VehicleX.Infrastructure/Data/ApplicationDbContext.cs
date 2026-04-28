@@ -10,6 +10,9 @@ public class ApplicationDbContext : DbContext
     {
     }
 
+    public DbSet<Customer> Customers { get; set; }
+    public DbSet<Vehicle> Vehicles { get; set; }
+
     public DbSet<Vendor> Vendors { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
