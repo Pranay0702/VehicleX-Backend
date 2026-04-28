@@ -128,4 +128,57 @@ public class CustomerService : ICustomerService
 
         return ApiResponse<CustomerAuthResponseDto>.Ok(response, "Customer registered successfully.");
     }
+
+    public async Task<ApiResponse<CustomerAuthResponseDto>> CustomerLoginAsync(CustomerLoginDto dto)
+    {
+        var customer = await _customerRepository.GetByEmailAsync(dto.Email);
+
+        if (customer == null)
+        {
+            return new ApiResponse<CustomerAuthResponseDto>
+            {
+                Success = false,
+                Message = "Invalid email or password."
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(customer.PasswordHash))
+        {
+            return new ApiResponse<CustomerAuthResponseDto>
+            {
+                Success = false,
+                Message = "Invalid email or password."
+            };
+        }
+
+        var isPasswordValid = BCrypt.Net.BCrypt.Verify(dto.Password, customer.PasswordHash);
+
+        if (!isPasswordValid)
+        {
+            return new ApiResponse<CustomerAuthResponseDto>
+            {
+                Success = false,
+                Message = "Invalid email or password."
+            };
+        }
+
+        var token = _jwtTokenService.GenerateCustomerToken(customer);
+
+        var response = new CustomerAuthResponseDto
+        {
+            Id = customer.Id,
+            FullName = customer.FullName,
+            PhoneNumber = customer.PhoneNumber,
+            Email = customer.Email,
+            Role = "Customer",
+            Token = token
+        };
+
+        return new ApiResponse<CustomerAuthResponseDto>
+        {
+            Success = true,
+            Message = "Customer logged in successfully.",
+            Data = response
+        };
+    }
 }

@@ -33,4 +33,11 @@ public class CustomerRepository : ICustomerRepository
         return await _context.Customers
             .AnyAsync(c => c.Email == email);
     }
+
+    public async Task<Customer?> GetByEmailAsync(string email)
+    {
+        return await _context.Customers
+            .Include(c => c.Vehicles)
+            .FirstOrDefaultAsync(c => c.Email.ToLower() == email.ToLower());
+    }
 }

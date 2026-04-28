@@ -11,4 +11,7 @@ public interface ICustomerService
 
     // Customer can register by themselves and receive JWT token
     Task<ApiResponse<CustomerAuthResponseDto>> CustomerSelfRegisterAsync(CustomerSelfRegisterDto dto);
+
+    // Service will check password + generate JWT.
+    Task<ApiResponse<CustomerAuthResponseDto>> CustomerLoginAsync(CustomerLoginDto dto);
 }
