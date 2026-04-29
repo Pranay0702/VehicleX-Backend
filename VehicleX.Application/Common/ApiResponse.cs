@@ -7,6 +7,7 @@ public class ApiResponse<T>
     public string Message { get; set; } = string.Empty;
 
     public T? Data { get; set; }
+    public IReadOnlyDictionary<string, string[]>? Errors { get; set; }
 
     public static ApiResponse<T> Ok(T data, string message = "Success")
     {
@@ -18,13 +19,14 @@ public class ApiResponse<T>
         };
     }
 
-    public static ApiResponse<T> Fail(string message)
+    public static ApiResponse<T> Fail(string message, IReadOnlyDictionary<string, string[]>? errors = null)
     {
         return new ApiResponse<T>
         {
             Success = false,
             Message = message,
-            Data = default
+            Data = default,
+            Errors = errors
         };
     }
 }

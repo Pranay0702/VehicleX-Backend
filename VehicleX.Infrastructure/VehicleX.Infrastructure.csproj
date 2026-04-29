@@ -7,6 +7,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <Folder Include="Repositories\" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\VehicleX.Application\VehicleX.Application.csproj" />
     </ItemGroup>
 

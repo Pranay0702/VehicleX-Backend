@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using VehicleX.Application.DTOs.Common;
 
 namespace VehicleX.API.Middleware;
@@ -14,48 +15,62 @@ public class GlobalExceptionMiddleware
         _next = next ?? throw new ArgumentNullException(nameof(next));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
-    
+
     public async Task InvokeAsync(HttpContext context)
     {
         try
         {
             await _next(context);
         }
-        catch (Exception ex)
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
-            _logger.LogError(ex, "An unhandled exception occurred while processing the request: {Path}", context.Request.Path);
-            await HandleExceptionAsync(context, ex);
+            context.Response.StatusCode = StatusCodes.Status499ClientClosedRequest;
+        }
+        catch (DbUpdateException exception)
+        {
+            _logger.LogError(exception, "A database update error occurred.");
+            await WriteErrorAsync(context, HttpStatusCode.Conflict, "A database conflict occurred while processing the request.");
+        }
+        catch (InvalidOperationException exception)
+        {
+            _logger.LogError(exception, "An invalid operation occurred.");
+            await WriteErrorAsync(context, HttpStatusCode.BadRequest, exception.Message);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "An unhandled exception occurred while processing the request: {Path}", context.Request.Path);
+
+            var (statusCode, message) = exception switch
+            {
+                ArgumentNullException => (HttpStatusCode.BadRequest, "A required argument was not provided."),
+                ArgumentException => (HttpStatusCode.BadRequest, "An invalid argument was provided."),
+                KeyNotFoundException => (HttpStatusCode.NotFound, "The requested resource was not found."),
+                UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "You are not authorized to perform this action."),
+                TimeoutException => (HttpStatusCode.RequestTimeout, "The operation timed out. Please try again."),
+                _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred. Please try again later.")
+            };
+
+            await WriteErrorAsync(context, statusCode, message);
         }
     }
-    
-    private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
+
+    private static async Task WriteErrorAsync(HttpContext context, HttpStatusCode statusCode, string message)
     {
-        context.Response.ContentType = "application/json";
-
-        var (statusCode, message) = exception switch
+        if (context.Response.HasStarted)
         {
-            ArgumentNullException => (HttpStatusCode.BadRequest, "A required argument was not provided."),
-            ArgumentException => (HttpStatusCode.BadRequest, "An invalid argument was provided."),
-            KeyNotFoundException => (HttpStatusCode.NotFound, "The requested resource was not found."),
-            InvalidOperationException => (HttpStatusCode.Conflict, "The operation is not valid for the current state."),
-            UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "You are not authorized to perform this action."),
-            TimeoutException => (HttpStatusCode.RequestTimeout, "The operation timed out. Please try again."),
-            _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred. Please try again later.")
-        };
+            return;
+        }
 
+        context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)statusCode;
 
-        var response = ApiResponse<object>.FailureResponse(
-            message,
-            new List<string> { exception.Message });
-
-        var jsonOptions = new JsonSerializerOptions
+        var response = ApiResponse<object>.FailureResponse(message);
+        var json = JsonSerializer.Serialize(response, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
+        });
 
-        var jsonResponse = JsonSerializer.Serialize(response, jsonOptions);
-        await context.Response.WriteAsync(jsonResponse);
+        await context.Response.WriteAsync(json);
     }
 }
 

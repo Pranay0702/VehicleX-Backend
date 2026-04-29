@@ -1,20 +1,22 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using VehicleX.API.Middleware;
+using VehicleX.Application.DTOs.Common;
 using VehicleX.Application.Interfaces;
 using VehicleX.Application.Interfaces.Repositories;
 using VehicleX.Application.Interfaces.Services;
 using VehicleX.Application.Services;
+using VehicleX.Infrastructure;
 using VehicleX.Infrastructure.Data;
 using VehicleX.Infrastructure.Repositories;
-using VehicleX.Application.Interfaces.Repositories;
-using VehicleX.Application.Interfaces.Services;
 using VehicleX.Infrastructure.Services;
 
-// Load .env file from project folder or backend root folder
+// Load .env file
 var currentDirectory = Directory.GetCurrentDirectory();
 var envPath = Path.Combine(currentDirectory, ".env");
 
@@ -43,7 +45,10 @@ if (string.IsNullOrWhiteSpace(connectionString))
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// JWT Authentication setup
+// Infrastructure services (Staff, etc.)
+builder.Services.AddInfrastructure(builder.Configuration);
+
+// JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"];
 
 if (string.IsNullOrWhiteSpace(jwtKey))
@@ -64,7 +69,6 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
@@ -81,16 +85,30 @@ builder.Services.AddScoped<IPurchaseInvoiceRepository, PurchaseInvoiceRepository
 // Dependency Injection — Services
 builder.Services.AddScoped<IVendorService, VendorService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<IFinancialReportService, FinancialReportService>();
 builder.Services.AddScoped<ICustomerReportService, CustomerReportService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
-
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    })
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(entry => entry.Value?.Errors.Count > 0)
+                .ToDictionary(
+                    entry => entry.Key,
+                    entry => entry.Value!.Errors.Select(error => error.ErrorMessage).ToArray());
+
+            return new BadRequestObjectResult(ApiResponse<object>.FailureResponse("Validation failed."));
+        };
     });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -111,9 +129,6 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-builder.Services.AddScoped<ICustomerService, CustomerService>();
-builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
-
 var app = builder.Build();
 
 // Global exception handler
@@ -129,8 +144,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");
-
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
