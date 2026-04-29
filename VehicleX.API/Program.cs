@@ -16,124 +16,117 @@ using VehicleX.Infrastructure.Data;
 using VehicleX.Infrastructure.Repositories;
 using VehicleX.Infrastructure.Services;
 
-// Load .env file
-var currentDirectory = Directory.GetCurrentDirectory();
-var envPath = Path.Combine(currentDirectory, ".env");
-
+var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
 if (!File.Exists(envPath))
-{
-    envPath = Path.Combine(currentDirectory, "..", ".env");
-}
-
+    envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
 if (File.Exists(envPath))
-{
     Env.Load(envPath);
-}
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Database connection from .env first, then appsettings.json
-var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+// Database
+var connectionString =
+    Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrWhiteSpace(connectionString))
-{
-    throw new InvalidOperationException("Database connection string is missing. Please check your .env file.");
-}
+    throw new InvalidOperationException(
+        "Database connection string is missing. Set it in .env or appsettings.json.");
 
-// Database Context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseNpgsql(connectionString, npgsql =>
+    {
+        npgsql.CommandTimeout(120);
+        npgsql.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorCodesToAdd: null);
+    }));
 
-// Infrastructure services (Staff, etc.)
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"];
-
 if (string.IsNullOrWhiteSpace(jwtKey))
-{
-    throw new InvalidOperationException("JWT key is missing.");
-}
+    throw new InvalidOperationException("JWT key is missing. Add Jwt:Key to appsettings.json or .env.");
 
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
+        ValidateIssuer           = true,
+        ValidateAudience         = true,
+        ValidateLifetime         = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        ValidIssuer              = builder.Configuration["Jwt:Issuer"],
+        ValidAudience            = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
     };
 });
 
-// Dependency Injection — Repositories
-builder.Services.AddScoped<IVendorRepository, VendorRepository>();
-builder.Services.AddScoped<IPartRepository, PartRepository>();
-builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
-builder.Services.AddScoped<ISalesInvoiceRepository, SalesInvoiceRepository>();
+// Repositories
+builder.Services.AddScoped<IVendorRepository,          VendorRepository>();
+builder.Services.AddScoped<IPartRepository,            PartRepository>();
+builder.Services.AddScoped<ICustomerRepository,        CustomerRepository>();
+builder.Services.AddScoped<ISalesInvoiceRepository,    SalesInvoiceRepository>();
 builder.Services.AddScoped<IPurchaseInvoiceRepository, PurchaseInvoiceRepository>();
 
-// Dependency Injection — Services
-builder.Services.AddScoped<IVendorService, VendorService>();
-builder.Services.AddScoped<ICustomerService, CustomerService>();
-builder.Services.AddScoped<IStaffService, StaffService>();
+// Services
+builder.Services.AddScoped<IVendorService,          VendorService>();
+builder.Services.AddScoped<ICustomerService,        CustomerService>();
+builder.Services.AddScoped<IStaffService,           StaffService>();
 builder.Services.AddScoped<IFinancialReportService, FinancialReportService>();
-builder.Services.AddScoped<ICustomerReportService, CustomerReportService>();
-builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<ICustomerReportService,  CustomerReportService>();
+builder.Services.AddScoped<IJwtTokenService,        JwtTokenService>();
 
+// Controllers
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.PropertyNamingPolicy      = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.DefaultIgnoreCondition    = JsonIgnoreCondition.WhenWritingNull;
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     })
     .ConfigureApiBehaviorOptions(options =>
     {
+        // Return structured ApiResponse on model validation failure
         options.InvalidModelStateResponseFactory = context =>
         {
             var errors = context.ModelState
-                .Where(entry => entry.Value?.Errors.Count > 0)
-                .ToDictionary(
-                    entry => entry.Key,
-                    entry => entry.Value!.Errors.Select(error => error.ErrorMessage).ToArray());
+                .Where(e => e.Value?.Errors.Count > 0)
+                .SelectMany(e => e.Value!.Errors.Select(err => err.ErrorMessage))
+                .ToList();
 
-            return new BadRequestObjectResult(ApiResponse<object>.FailureResponse("Validation failed."));
+            return new BadRequestObjectResult(
+                ApiResponse<object>.FailureResponse("Validation failed.", errors));
         };
     });
 
+// Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddOpenApi();
 
+// CORS 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy.AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader();
-    });
+        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 });
 
+// Logging 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 var app = builder.Build();
 
-// Global exception handler
-app.UseGlobalExceptionMiddleware();
-
+app.UseGlobalExceptionMiddleware(); 
 app.UseCors("AllowFrontend");
 
 if (app.Environment.IsDevelopment())
@@ -148,23 +141,21 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
+// Auto-apply EF migrations on startup
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var db     = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-
     try
     {
         logger.LogInformation("Applying database migrations...");
-        await dbContext.Database.MigrateAsync();
-        logger.LogInformation("Database migrations applied successfully.");
+        await db.Database.MigrateAsync();
+        logger.LogInformation("Migrations applied successfully.");
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "An error occurred while applying database migrations.");
+        logger.LogError(ex, "Migration failed — check your DB connection.");
     }
 }
-
-Console.WriteLine(builder.Environment.EnvironmentName);
 
 app.Run();
