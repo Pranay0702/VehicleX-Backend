@@ -16,10 +16,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Controllers\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\VehicleX.Application\VehicleX.Application.csproj" />
       <ProjectReference Include="..\VehicleX.Infrastructure\VehicleX.Infrastructure.csproj" />
     </ItemGroup>
