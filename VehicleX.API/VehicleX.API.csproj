@@ -16,6 +16,9 @@
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
     </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Controllers\" />
+    </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\VehicleX.Application\VehicleX.Application.csproj" />
