@@ -37,9 +37,12 @@ public class GlobalExceptionMiddleware
             ArgumentNullException => (HttpStatusCode.BadRequest, "A required argument was not provided."),
             ArgumentException => (HttpStatusCode.BadRequest, "An invalid argument was provided."),
             KeyNotFoundException => (HttpStatusCode.NotFound, "The requested resource was not found."),
-            InvalidOperationException => (HttpStatusCode.Conflict, "The operation is not valid for the current state."),
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "You are not authorized to perform this action."),
             TimeoutException => (HttpStatusCode.RequestTimeout, "The operation timed out. Please try again."),
+            Microsoft.EntityFrameworkCore.DbUpdateException dbEx when IsConstraintViolation(dbEx)
+                => (HttpStatusCode.Conflict, "A database conflict occurred. The record may already exist."),
+            Microsoft.EntityFrameworkCore.DbUpdateException
+                => (HttpStatusCode.InternalServerError, "A database error occurred. Please try again."),
             _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred. Please try again later.")
         };
 
@@ -56,6 +59,21 @@ public class GlobalExceptionMiddleware
 
         var jsonResponse = JsonSerializer.Serialize(response, jsonOptions);
         await context.Response.WriteAsync(jsonResponse);
+    }
+
+    /// <summary>
+    /// Checks if a DbUpdateException is caused by a real constraint violation (duplicate key, FK violation)
+    /// vs a transient failure (timeout, connection loss).
+    /// </summary>
+    private static bool IsConstraintViolation(Microsoft.EntityFrameworkCore.DbUpdateException ex)
+    {
+        // PostgreSQL error codes: 23505 = unique_violation, 23503 = foreign_key_violation
+        var inner = ex.InnerException;
+        if (inner is Npgsql.PostgresException pgEx)
+        {
+            return pgEx.SqlState is "23505" or "23503";
+        }
+        return false;
     }
 }
 
