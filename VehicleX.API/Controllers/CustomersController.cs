@@ -27,4 +27,31 @@ public class CustomersController : ControllerBase
 
         return CreatedAtAction(nameof(StaffRegisterCustomer), new { id = result.Data?.Id }, result);
     }
+
+    [HttpPost("self-register")]
+    public async Task<IActionResult> CustomerSelfRegister([FromBody] CustomerSelfRegisterDto dto)
+    {
+        // Customer registers themselves and receives JWT token
+        var result = await _customerService.CustomerSelfRegisterAsync(dto);
+
+        if (!result.Success) 
+        {
+            return BadRequest(result);
+        }
+
+        return CreatedAtAction(nameof(CustomerSelfRegister), new { id = result.Data?.Id }, result);
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> CustomerLogin([FromBody] CustomerLoginDto dto)
+    {
+        var result = await _customerService.CustomerLoginAsync(dto);
+
+        if (!result.Success)
+        {
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
 }

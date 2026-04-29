@@ -9,4 +9,5 @@ public interface ICustomerRepository
     Task<bool> PhoneNumberExistsAsync(string phoneNumber);
 
     Task<bool> EmailExistsAsync(string email);
+    Task<Customer?> GetByEmailAsync(string email);
 }
