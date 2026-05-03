@@ -30,44 +30,30 @@ namespace VehicleX.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAtUtc")
+                    b.Property<string>("Address")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("text");
 
                     b.Property<string>("FullName")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("text");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("text");
 
                     b.Property<string>("PhoneNumber")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
                     b.ToTable("Customers");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "saswatkc123@gmail.com",
-                            FullName = "Saswat Khatry",
-                            PhoneNumber = "9808855888"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "AaryanJS@gmail.com",
-                            FullName = "Aaryan Jha Sir",
-                            PhoneNumber = "+9808855884"
-                        });
                 });
 
             modelBuilder.Entity("VehicleX.Domain.Entities.Part", b =>
@@ -77,176 +63,154 @@ namespace VehicleX.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PartNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("StockQuantity")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("VendorId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VendorId");
+
+                    b.ToTable("Part");
+                });
+
+            modelBuilder.Entity("VehicleX.Domain.Entities.Vehicle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Brand")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FuelType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("VehicleNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.ToTable("Vehicles");
+                });
+
+            modelBuilder.Entity("VehicleX.Domain.Entities.Vendor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ContactPerson")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<string>("PartNumber")
+                    b.Property<string>("Phone")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
-                    b.Property<int>("StockQuantity")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PartNumber")
-                        .IsUnique();
-
-                    b.ToTable("Parts");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Name = "Brembo floating disc calipers",
-                            PartNumber = "BRE-FDC-001",
-                            StockQuantity = 40,
-                            UnitPrice = 25000m
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Name = "BMC Air Filter",
-                            PartNumber = "BMC-AF-2000",
-                            StockQuantity = 75,
-                            UnitPrice = 800m
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Name = "LiquiMoly Engine Oil 5W-30",
-                            PartNumber = "LQML-OIL-530",
-                            StockQuantity = 60,
-                            UnitPrice = 1500m
-                        });
-                });
-
-            modelBuilder.Entity("VehicleX.Domain.Entities.SalesInvoice", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAtUtc")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("DiscountAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("InvoiceNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<decimal>("SubTotalAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("InvoiceNumber")
+                    b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("SalesInvoices");
+                    b.ToTable("Vendors", (string)null);
                 });
 
-            modelBuilder.Entity("VehicleX.Domain.Entities.SalesItem", b =>
+            modelBuilder.Entity("VehicleX.Domain.Entities.Part", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                    b.HasOne("VehicleX.Domain.Entities.Vendor", "Vendor")
+                        .WithMany("Parts")
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("LineTotal")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<int>("PartId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SalesInvoiceId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PartId");
-
-                    b.HasIndex("SalesInvoiceId");
-
-                    b.ToTable("SalesItems");
+                    b.Navigation("Vendor");
                 });
 
-            modelBuilder.Entity("VehicleX.Domain.Entities.SalesInvoice", b =>
+            modelBuilder.Entity("VehicleX.Domain.Entities.Vehicle", b =>
                 {
                     b.HasOne("VehicleX.Domain.Entities.Customer", "Customer")
-                        .WithMany("SalesInvoices")
+                        .WithMany("Vehicles")
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("VehicleX.Domain.Entities.SalesItem", b =>
-                {
-                    b.HasOne("VehicleX.Domain.Entities.Part", "Part")
-                        .WithMany("SalesItems")
-                        .HasForeignKey("PartId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("VehicleX.Domain.Entities.SalesInvoice", "SalesInvoice")
-                        .WithMany("Items")
-                        .HasForeignKey("SalesInvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Part");
-
-                    b.Navigation("SalesInvoice");
-                });
-
             modelBuilder.Entity("VehicleX.Domain.Entities.Customer", b =>
                 {
-                    b.Navigation("SalesInvoices");
+                    b.Navigation("Vehicles");
                 });
 
-            modelBuilder.Entity("VehicleX.Domain.Entities.Part", b =>
+            modelBuilder.Entity("VehicleX.Domain.Entities.Vendor", b =>
                 {
-                    b.Navigation("SalesItems");
-                });
-
-            modelBuilder.Entity("VehicleX.Domain.Entities.SalesInvoice", b =>
-                {
-                    b.Navigation("Items");
+                    b.Navigation("Parts");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,4 +1,4 @@
-namespace VehicleX.Domain.Entities;
+﻿namespace VehicleX.Domain.Entities;
 
 public class Customer
 {
@@ -6,11 +6,15 @@ public class Customer
 
     public string FullName { get; set; } = string.Empty;
 
+    public string PhoneNumber { get; set; } = string.Empty;
+
     public string Email { get; set; } = string.Empty;
 
-    public string? PhoneNumber { get; set; }
+    public string? Address { get; set; }
 
-    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public string? PasswordHash { get; set; }
 
-    public ICollection<SalesInvoice> SalesInvoices { get; set; } = new List<SalesInvoice>();
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
 }

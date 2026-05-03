@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using VehicleX.Domain.Entities;
+using VehicleX.Domain.Enums;
 
 namespace VehicleX.Infrastructure.Data;
 
@@ -10,167 +11,142 @@ public class ApplicationDbContext : DbContext
     {
     }
 
-    public DbSet<Customer> Customers => Set<Customer>();
-
-    public DbSet<Part> Parts => Set<Part>();
-
-    public DbSet<SalesInvoice> SalesInvoices => Set<SalesInvoice>();
-
-    public DbSet<SalesItem> SalesItems => Set<SalesItem>();
+    public DbSet<Customer> Customers { get; set; }
+    public DbSet<Vehicle> Vehicles { get; set; }
+    public DbSet<Vendor> Vendors { get; set; } = null!;
+    public DbSet<SalesInvoice> SalesInvoices { get; set; }
+    public DbSet<SalesInvoiceItem> SalesInvoiceItems { get; set; }
+    public DbSet<PurchaseInvoice> PurchaseInvoices { get; set; }
+    public DbSet<PurchaseInvoiceItem> PurchaseInvoiceItems { get; set; }
+    public DbSet<Staff> Staff => Set<Staff>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<Customer>(entity =>
+        // Staff configuration
+        modelBuilder.Entity<Staff>(entity =>
         {
-            entity.HasKey(customer => customer.Id);
+            entity.ToTable("staff");
 
-            entity.Property(customer => customer.FullName)
-                .IsRequired()
-                .HasMaxLength(150);
+            entity.HasKey(staff => staff.Id);
 
-            entity.Property(customer => customer.Email)
-                .IsRequired()
-                .HasMaxLength(150);
+            entity.Property(staff => staff.Id)
+                .HasColumnName("id");
 
-            entity.Property(customer => customer.PhoneNumber)
-                .HasMaxLength(20);
-
-            entity.Property(customer => customer.CreatedAtUtc)
+            entity.Property(staff => staff.FirstName)
+                .HasColumnName("first_name")
+                .HasMaxLength(80)
                 .IsRequired();
 
-            entity.HasMany(customer => customer.SalesInvoices)
-                .WithOne(salesInvoice => salesInvoice.Customer)
-                .HasForeignKey(salesInvoice => salesInvoice.CustomerId)
-                .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(staff => staff.LastName)
+                .HasColumnName("last_name")
+                .HasMaxLength(80)
+                .IsRequired();
+
+            entity.Property(staff => staff.Email)
+                .HasColumnName("email")
+                .HasMaxLength(180)
+                .IsRequired();
+
+            entity.HasIndex(staff => staff.Email)
+                .IsUnique();
+
+            entity.Property(staff => staff.PhoneNumber)
+                .HasColumnName("phone_number")
+                .HasMaxLength(30);
+
+            entity.Property(staff => staff.Role)
+                .HasColumnName("role")
+                .HasConversion<string>()
+                .HasMaxLength(40)
+                .IsRequired();
+
+            entity.Property(staff => staff.PasswordHash)
+                .HasColumnName("password_hash")
+                .HasMaxLength(500)
+                .IsRequired();
+
+            entity.Property(staff => staff.IsActive)
+                .HasColumnName("is_active")
+                .HasDefaultValue(true)
+                .IsRequired();
+
+            entity.Property(staff => staff.CreatedAtUtc)
+                .HasColumnName("created_at_utc")
+                .IsRequired();
+
+            entity.Property(staff => staff.UpdatedAtUtc)
+                .HasColumnName("updated_at_utc");
         });
 
-        modelBuilder.Entity<Part>(entity =>
+        // Vendor configuration
+        modelBuilder.Entity<Vendor>(entity =>
         {
-            entity.HasKey(part => part.Id);
+            entity.ToTable("Vendors");
+            entity.HasKey(v => v.Id);
 
-            entity.Property(part => part.Name)
+            entity.Property(v => v.Name)
                 .IsRequired()
                 .HasMaxLength(200);
 
-            entity.Property(part => part.PartNumber)
+            entity.Property(v => v.ContactPerson)
                 .IsRequired()
-                .HasMaxLength(100);
+                .HasMaxLength(150);
 
-            entity.HasIndex(part => part.PartNumber)
+            entity.Property(v => v.Email)
+                .IsRequired()
+                .HasMaxLength(256);
+
+            entity.HasIndex(v => v.Email)
                 .IsUnique();
 
-            entity.Property(part => part.UnitPrice)
-                .HasPrecision(18, 2)
-                .IsRequired();
-
-            entity.Property(part => part.StockQuantity)
-                .IsRequired();
-        });
-
-        modelBuilder.Entity<SalesInvoice>(entity =>
-        {
-            entity.HasKey(salesInvoice => salesInvoice.Id);
-
-            entity.Property(salesInvoice => salesInvoice.InvoiceNumber)
+            entity.Property(v => v.Phone)
                 .IsRequired()
-                .HasMaxLength(50);
+                .HasMaxLength(20);
 
-            entity.HasIndex(salesInvoice => salesInvoice.InvoiceNumber)
-                .IsUnique();
+            entity.Property(v => v.Address)
+                .HasMaxLength(500);
 
-            entity.Property(salesInvoice => salesInvoice.CreatedAtUtc)
-                .IsRequired();
-
-            entity.Property(salesInvoice => salesInvoice.SubTotalAmount)
-                .HasPrecision(18, 2)
-                .IsRequired();
-
-            entity.Property(salesInvoice => salesInvoice.DiscountAmount)
-                .HasPrecision(18, 2)
-                .IsRequired();
-
-            entity.Property(salesInvoice => salesInvoice.TotalAmount)
-                .HasPrecision(18, 2)
-                .IsRequired();
-
-            entity.HasMany(salesInvoice => salesInvoice.Items)
-                .WithOne(item => item.SalesInvoice)
-                .HasForeignKey(item => item.SalesInvoiceId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<SalesItem>(entity =>
-        {
-            entity.HasKey(item => item.Id);
-
-            entity.Property(item => item.Quantity)
-                .IsRequired();
-
-            entity.Property(item => item.UnitPrice)
-                .HasPrecision(18, 2)
-                .IsRequired();
-
-            entity.Property(item => item.LineTotal)
-                .HasPrecision(18, 2)
-                .IsRequired();
-
-            entity.HasOne(item => item.Part)
-                .WithMany(part => part.SalesItems)
-                .HasForeignKey(item => item.PartId)
+            // One to Many: Vendor -> Parts
+            entity.HasMany(v => v.Parts)
+                .WithOne(p => p.Vendor)
+                .HasForeignKey(p => p.VendorId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        SeedData(modelBuilder);
-    }
+        // SalesInvoice to Customer (many invoices per customer)
+        modelBuilder.Entity<SalesInvoice>()
+            .HasOne(s => s.Customer)
+            .WithMany()
+            .HasForeignKey(s => s.CustomerId)
+            .OnDelete(DeleteBehavior.Restrict);
 
-    private static void SeedData(ModelBuilder modelBuilder)
-    {
-        var seedCreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        // SalesInvoice to SalesInvoiceItems
+        modelBuilder.Entity<SalesInvoiceItem>()
+            .HasOne(i => i.SalesInvoice)
+            .WithMany(s => s.Items)
+            .HasForeignKey(i => i.SalesInvoiceId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Customer>().HasData(
-            new Customer
-            {
-                Id = 1,
-                FullName = "Saswat Khatry",
-                Email = "saswatkc123@gmail.com",
-                PhoneNumber = "9808855888",
-                CreatedAtUtc = seedCreatedAt
-            },
-            new Customer
-            {
-                Id = 2,
-                FullName = "Aaryan Jha Sir",
-                Email = "AaryanJS@gmail.com",
-                PhoneNumber = "+9808855884",
-                CreatedAtUtc = seedCreatedAt
-            });
+        // PurchaseInvoice to PurchaseInvoiceItems
+        modelBuilder.Entity<PurchaseInvoiceItem>()
+            .HasOne(i => i.PurchaseInvoice)
+            .WithMany(p => p.Items)
+            .HasForeignKey(i => i.PurchaseInvoiceId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Part>().HasData(
-            new Part
-            {
-                Id = 1,
-                Name = "Brembo floating disc calipers",
-                PartNumber = "BRE-FDC-001",
-                UnitPrice = 25000,
-                StockQuantity = 40
-            },
-            new Part
-            {
-                Id = 2,
-                Name = "BMC Air Filter",
-                PartNumber = "BMC-AF-2000",
-                UnitPrice = 800,
-                StockQuantity = 75
-            },
-            new Part
-            {
-                Id = 3,
-                Name = "LiquiMoly Engine Oil 5W-30",
-                PartNumber = "LQML-OIL-530",
-                UnitPrice = 1500,
-                StockQuantity = 60
-            });
+        // Decimal precision
+        modelBuilder.Entity<SalesInvoice>()
+            .Property(s => s.TotalAmount).HasPrecision(18, 2);
+
+        modelBuilder.Entity<SalesInvoiceItem>()
+            .Property(s => s.UnitPrice).HasPrecision(18, 2);
+
+        modelBuilder.Entity<PurchaseInvoice>()
+            .Property(p => p.TotalAmount).HasPrecision(18, 2);
+
+        modelBuilder.Entity<PurchaseInvoiceItem>()
+            .Property(p => p.UnitPrice).HasPrecision(18, 2);
     }
 }

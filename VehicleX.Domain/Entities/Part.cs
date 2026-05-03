@@ -1,16 +1,25 @@
+using VehicleX.Domain.Common;
+
 namespace VehicleX.Domain.Entities;
 
-public class Part
+/// <summary>
+/// Represents a vehicle part in the inventory.
+/// Fully implemented in Commit 3.
+/// </summary>
+public class Part : BaseEntity
 {
-    public int Id { get; set; }
-
     public string Name { get; set; } = string.Empty;
+
+    public string Description { get; set; } = string.Empty;
 
     public string PartNumber { get; set; } = string.Empty;
 
-    public decimal UnitPrice { get; set; }
+    public decimal Price { get; set; }
 
     public int StockQuantity { get; set; }
 
-    public ICollection<SalesItem> SalesItems { get; set; } = new List<SalesItem>();
+    public int VendorId { get; set; }
+
+    // Navigation property
+    public Vendor Vendor { get; set; } = null!;
 }

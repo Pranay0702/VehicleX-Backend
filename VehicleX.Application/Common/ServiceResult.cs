@@ -2,44 +2,31 @@ namespace VehicleX.Application.Common;
 
 public class ServiceResult<T>
 {
-    private ServiceResult(bool isSuccess, string message, T? data, ResultErrorType errorType)
+    public bool Success { get; private init; }
+    public int StatusCode { get; private init; }
+    public string Message { get; private init; } = string.Empty;
+    public T? Data { get; private init; }
+    public IReadOnlyDictionary<string, string[]>? Errors { get; private init; }
+
+    public static ServiceResult<T> Ok(T? data, string message = "Request completed successfully.", int statusCode = 200)
     {
-        IsSuccess = isSuccess;
-        Message = message;
-        Data = data;
-        ErrorType = errorType;
+        return new ServiceResult<T>
+        {
+            Success = true,
+            StatusCode = statusCode,
+            Message = message,
+            Data = data
+        };
     }
 
-    public bool IsSuccess { get; }
-
-    public string Message { get; }
-
-    public T? Data { get; }
-
-    public ResultErrorType ErrorType { get; }
-
-    public static ServiceResult<T> Success(T data, string message)
+    public static ServiceResult<T> Fail(string message, int statusCode, IReadOnlyDictionary<string, string[]>? errors = null)
     {
-        return new ServiceResult<T>(true, message, data, ResultErrorType.None);
-    }
-
-    public static ServiceResult<T> ValidationFailure(string message)
-    {
-        return new ServiceResult<T>(false, message, default, ResultErrorType.Validation);
-    }
-
-    public static ServiceResult<T> NotFound(string message)
-    {
-        return new ServiceResult<T>(false, message, default, ResultErrorType.NotFound);
-    }
-
-    public static ServiceResult<T> Conflict(string message)
-    {
-        return new ServiceResult<T>(false, message, default, ResultErrorType.Conflict);
-    }
-
-    public static ServiceResult<T> Failure(string message)
-    {
-        return new ServiceResult<T>(false, message, default, ResultErrorType.Error);
+        return new ServiceResult<T>
+        {
+            Success = false,
+            StatusCode = statusCode,
+            Message = message,
+            Errors = errors
+        };
     }
 }

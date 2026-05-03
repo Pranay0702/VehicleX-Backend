@@ -4,7 +4,17 @@ namespace VehicleX.Application.Interfaces;
 
 public interface IPartRepository
 {
-    Task<List<Part>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<IEnumerable<Part>> GetAllAsync();
 
-    Task<List<Part>> GetByIdsAsync(IReadOnlyCollection<int> partIds, CancellationToken cancellationToken = default);
+    Task<Part?> GetByIdAsync(int id);
+
+    Task<bool> ExistsByPartNumberAsync(string partNumber, int? excludeId = null);
+
+    Task<bool> AnyByVendorIdAsync(int vendorId);
+
+    Task<Part> AddAsync(Part part);
+
+    Task UpdateAsync(Part part);
+
+    Task DeleteAsync(Part part);
 }

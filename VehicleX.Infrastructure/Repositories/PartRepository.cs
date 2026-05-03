@@ -7,25 +7,56 @@ namespace VehicleX.Infrastructure.Repositories;
 
 public class PartRepository : IPartRepository
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly ApplicationDbContext _context;
 
-    public PartRepository(ApplicationDbContext dbContext)
+    public PartRepository(ApplicationDbContext context)
     {
-        _dbContext = dbContext;
+        _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
-    public async Task<List<Part>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Part>> GetAllAsync()
     {
-        return await _dbContext.Parts
+        return await _context.Set<Part>()
             .AsNoTracking()
-            .OrderBy(part => part.Name)
-            .ToListAsync(cancellationToken);
+            .ToListAsync();
     }
 
-    public async Task<List<Part>> GetByIdsAsync(IReadOnlyCollection<int> partIds, CancellationToken cancellationToken = default)
+    public async Task<Part?> GetByIdAsync(int id)
     {
-        return await _dbContext.Parts
-            .Where(part => partIds.Contains(part.Id))
-            .ToListAsync(cancellationToken);
+        return await _context.Set<Part>()
+            .FirstOrDefaultAsync(p => p.Id == id);
+    }
+
+    public async Task<bool> ExistsByPartNumberAsync(string partNumber, int? excludeId = null)
+    {
+        var normalized = partNumber.Trim().ToUpper();
+        return await _context.Set<Part>()
+            .AnyAsync(p => p.PartNumber.ToUpper() == normalized
+                           && (!excludeId.HasValue || p.Id != excludeId.Value));
+    }
+
+    public async Task<bool> AnyByVendorIdAsync(int vendorId)
+    {
+        return await _context.Set<Part>()
+            .AnyAsync(p => p.VendorId == vendorId);
+    }
+
+    public async Task<Part> AddAsync(Part part)
+    {
+        await _context.Set<Part>().AddAsync(part);
+        await _context.SaveChangesAsync();
+        return part;
+    }
+
+    public async Task UpdateAsync(Part part)
+    {
+        _context.Set<Part>().Update(part);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(Part part)
+    {
+        _context.Set<Part>().Remove(part);
+        await _context.SaveChangesAsync();
     }
 }
