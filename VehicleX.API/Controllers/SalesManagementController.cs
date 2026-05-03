@@ -47,7 +47,7 @@ public class SalesManagementController : ControllerBase
     {
         var result = await _salesManagementService.CreateSalesInvoiceAsync(request, cancellationToken);
 
-        if (result.IsSuccess && result.Data is not null)
+        if (result.Success && result.Data is not null)
         {
             var successResponse = ApiResponse<SalesInvoiceResponseDto>.SuccessResponse(result.Message, result.Data);
 
@@ -73,19 +73,14 @@ public class SalesManagementController : ControllerBase
 
     private IActionResult MapResult<T>(AppCommon.ServiceResult<T> result)
     {
-        if (result.IsSuccess && result.Data is not null)
+        if (result.Success && result.Data is not null)
         {
-            return Ok(ApiResponse<T>.SuccessResponse(result.Message, result.Data));
+            return StatusCode(result.StatusCode, ApiResponse<T>.SuccessResponse(result.Message, result.Data));
         }
 
-        var errorResponse = ApiResponse<object>.Failure(result.Message, new[] { result.Message });
-
-        return result.ErrorType switch
-        {
-            AppCommon.ResultErrorType.Validation => BadRequest(errorResponse),
-            AppCommon.ResultErrorType.NotFound => NotFound(errorResponse),
-            AppCommon.ResultErrorType.Conflict => Conflict(errorResponse),
-            _ => StatusCode(StatusCodes.Status500InternalServerError, errorResponse)
-        };
+        var flattenedErrors = result.Errors?.SelectMany(error => error.Value).ToList() ?? new List<string> { result.Message };
+        var errorResponse = ApiResponse<object>.Failure(result.Message, flattenedErrors);
+        var statusCode = result.StatusCode <= 0 ? StatusCodes.Status500InternalServerError : result.StatusCode;
+        return StatusCode(statusCode, errorResponse);
     }
 }

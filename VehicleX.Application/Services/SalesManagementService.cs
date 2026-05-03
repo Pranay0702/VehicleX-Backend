@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.Extensions.Logging;
 using VehicleX.Application.Common;
 using VehicleX.Application.DTOs;
@@ -43,12 +44,12 @@ public class SalesManagementService : ISalesManagementService
                 })
                 .ToList();
 
-            return ServiceResult<List<CustomerLookupDto>>.Success(response, "Customers fetched successfully.");
+            return ServiceResult<List<CustomerLookupDto>>.Ok(response, "Customers fetched successfully.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while fetching customers.");
-            return ServiceResult<List<CustomerLookupDto>>.Failure("Unable to fetch customers right now.");
+            return ServiceResult<List<CustomerLookupDto>>.Fail("Unable to fetch customers right now.", (int)HttpStatusCode.InternalServerError);
         }
     }
 
@@ -56,7 +57,7 @@ public class SalesManagementService : ISalesManagementService
     {
         try
         {
-            var parts = await _partRepository.GetAllAsync(cancellationToken);
+            var parts = await _partRepository.GetAllAsync();
 
             var response = parts
                 .Select(part => new PartLookupDto
@@ -64,17 +65,17 @@ public class SalesManagementService : ISalesManagementService
                     Id = part.Id,
                     Name = part.Name,
                     PartNumber = part.PartNumber,
-                    UnitPrice = part.UnitPrice,
+                    UnitPrice = part.Price,
                     StockQuantity = part.StockQuantity
                 })
                 .ToList();
 
-            return ServiceResult<List<PartLookupDto>>.Success(response, "Parts fetched successfully.");
+            return ServiceResult<List<PartLookupDto>>.Ok(response, "Parts fetched successfully.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while fetching parts.");
-            return ServiceResult<List<PartLookupDto>>.Failure("Unable to fetch parts right now.");
+            return ServiceResult<List<PartLookupDto>>.Fail("Unable to fetch parts right now.", (int)HttpStatusCode.InternalServerError);
         }
     }
 
@@ -84,9 +85,11 @@ public class SalesManagementService : ISalesManagementService
     {
         try
         {
-            if (request.Items.Count == 0)
+            if (request.Items is null || request.Items.Count == 0)
             {
-                return ServiceResult<SalesInvoiceResponseDto>.ValidationFailure("At least one sales item is required.");
+                return ServiceResult<SalesInvoiceResponseDto>.Fail(
+                    "At least one sales item is required.",
+                    (int)HttpStatusCode.BadRequest);
             }
 
             var duplicatePartIds = request.Items
@@ -97,27 +100,37 @@ public class SalesManagementService : ISalesManagementService
 
             if (duplicatePartIds.Count > 0)
             {
-                return ServiceResult<SalesInvoiceResponseDto>.ValidationFailure(
-                    $"Duplicate part entries are not allowed. Duplicate Part IDs: {string.Join(", ", duplicatePartIds)}");
+                return ServiceResult<SalesInvoiceResponseDto>.Fail(
+                    $"Duplicate part entries are not allowed. Duplicate Part IDs: {string.Join(", ", duplicatePartIds)}",
+                    (int)HttpStatusCode.BadRequest);
             }
 
             var customer = await _customerRepository.GetByIdAsync(request.CustomerId, cancellationToken);
             if (customer is null)
             {
-                return ServiceResult<SalesInvoiceResponseDto>.NotFound("Customer not found.");
+                return ServiceResult<SalesInvoiceResponseDto>.Fail("Customer not found.", (int)HttpStatusCode.NotFound);
             }
 
             var requestedPartIds = request.Items.Select(item => item.PartId).Distinct().ToList();
-            var parts = await _partRepository.GetByIdsAsync(requestedPartIds, cancellationToken);
-            var partLookup = parts.ToDictionary(part => part.Id);
+            var partLookup = new Dictionary<int, Part>();
+            var missingPartIds = new List<int>();
+            foreach (var partId in requestedPartIds)
+            {
+                var part = await _partRepository.GetByIdAsync(partId);
+                if (part is null)
+                {
+                    missingPartIds.Add(partId);
+                    continue;
+                }
 
-            var missingPartIds = requestedPartIds
-                .Where(partId => !partLookup.ContainsKey(partId))
-                .ToList();
+                partLookup[partId] = part;
+            }
 
             if (missingPartIds.Count > 0)
             {
-                return ServiceResult<SalesInvoiceResponseDto>.NotFound($"Part(s) not found: {string.Join(", ", missingPartIds)}.");
+                return ServiceResult<SalesInvoiceResponseDto>.Fail(
+                    $"Part(s) not found: {string.Join(", ", missingPartIds)}.",
+                    (int)HttpStatusCode.NotFound);
             }
 
             foreach (var requestedItem in request.Items)
@@ -126,29 +139,32 @@ public class SalesManagementService : ISalesManagementService
 
                 if (requestedItem.Quantity <= 0)
                 {
-                    return ServiceResult<SalesInvoiceResponseDto>.ValidationFailure(
-                        $"Quantity for part '{part.Name}' must be greater than 0.");
+                    return ServiceResult<SalesInvoiceResponseDto>.Fail(
+                        $"Quantity for part '{part.Name}' must be greater than 0.",
+                        (int)HttpStatusCode.BadRequest);
                 }
 
-                if (part.UnitPrice < 0)
+                if (part.Price < 0)
                 {
-                    return ServiceResult<SalesInvoiceResponseDto>.Failure(
-                        $"Part '{part.Name}' has invalid unit price configured.");
+                    return ServiceResult<SalesInvoiceResponseDto>.Fail(
+                        $"Part '{part.Name}' has invalid unit price configured.",
+                        (int)HttpStatusCode.InternalServerError);
                 }
 
                 if (part.StockQuantity < requestedItem.Quantity)
                 {
-                    return ServiceResult<SalesInvoiceResponseDto>.Conflict(
-                        $"Insufficient stock for part '{part.Name}'. Available: {part.StockQuantity}, Requested: {requestedItem.Quantity}.");
+                    return ServiceResult<SalesInvoiceResponseDto>.Fail(
+                        $"Insufficient stock for part '{part.Name}'. Available: {part.StockQuantity}, Requested: {requestedItem.Quantity}.",
+                        (int)HttpStatusCode.Conflict);
                 }
             }
 
             var invoice = new SalesInvoice
             {
                 CustomerId = customer.Id,
-                InvoiceNumber = GenerateInvoiceNumber(),
-                CreatedAtUtc = DateTime.UtcNow,
-                DiscountAmount = 0m
+                InvoiceDate = DateTime.UtcNow,
+                IsCredit = false,
+                IsCreditPaid = false
             };
 
             decimal subtotal = 0m;
@@ -159,33 +175,32 @@ public class SalesManagementService : ISalesManagementService
 
                 part.StockQuantity -= requestedItem.Quantity;
 
-                var lineTotal = part.UnitPrice * requestedItem.Quantity;
+                var lineTotal = part.Price * requestedItem.Quantity;
                 subtotal += lineTotal;
 
-                invoice.Items.Add(new SalesItem
+                invoice.Items.Add(new SalesInvoiceItem
                 {
                     PartId = part.Id,
                     Quantity = requestedItem.Quantity,
-                    UnitPrice = part.UnitPrice,
-                    LineTotal = lineTotal
+                    UnitPrice = part.Price
                 });
             }
 
-            invoice.SubTotalAmount = subtotal;
             invoice.TotalAmount = subtotal;
 
             await _salesInvoiceRepository.AddAsync(invoice, cancellationToken);
             await _repositoryManager.SaveChangesAsync(cancellationToken);
 
+            var invoiceNumber = BuildInvoiceNumber(invoice.Id);
             var response = new SalesInvoiceResponseDto
             {
                 InvoiceId = invoice.Id,
-                InvoiceNumber = invoice.InvoiceNumber,
-                CreatedAtUtc = invoice.CreatedAtUtc,
+                InvoiceNumber = invoiceNumber,
+                CreatedAtUtc = invoice.InvoiceDate,
                 CustomerId = customer.Id,
                 CustomerName = customer.FullName,
-                SubTotalAmount = invoice.SubTotalAmount,
-                DiscountAmount = invoice.DiscountAmount,
+                SubTotalAmount = subtotal,
+                DiscountAmount = 0m,
                 TotalAmount = invoice.TotalAmount,
                 Items = invoice.Items
                     .Select(item => new SalesInvoiceItemResponseDto
@@ -195,19 +210,20 @@ public class SalesManagementService : ISalesManagementService
                         PartNumber = partLookup[item.PartId].PartNumber,
                         Quantity = item.Quantity,
                         UnitPrice = item.UnitPrice,
-                        LineTotal = item.LineTotal
+                        LineTotal = item.UnitPrice * item.Quantity
                     })
                     .ToList()
             };
 
-            return ServiceResult<SalesInvoiceResponseDto>.Success(
+            return ServiceResult<SalesInvoiceResponseDto>.Ok(
                 response,
-                "Sales invoice created successfully and stock was updated.");
+                "Sales invoice created successfully and stock was updated.",
+                (int)HttpStatusCode.Created);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while creating sales invoice for CustomerId {CustomerId}.", request.CustomerId);
-            return ServiceResult<SalesInvoiceResponseDto>.Failure("Unable to create sales invoice right now.");
+            return ServiceResult<SalesInvoiceResponseDto>.Fail("Unable to create sales invoice right now.", (int)HttpStatusCode.InternalServerError);
         }
     }
 
@@ -219,51 +235,63 @@ public class SalesManagementService : ISalesManagementService
         {
             if (invoiceId <= 0)
             {
-                return ServiceResult<SalesInvoiceResponseDto>.ValidationFailure("InvoiceId must be greater than 0.");
+                return ServiceResult<SalesInvoiceResponseDto>.Fail(
+                    "InvoiceId must be greater than 0.",
+                    (int)HttpStatusCode.BadRequest);
             }
 
             var invoice = await _salesInvoiceRepository.GetByIdWithItemsAsync(invoiceId, cancellationToken);
 
             if (invoice is null)
             {
-                return ServiceResult<SalesInvoiceResponseDto>.NotFound("Sales invoice not found.");
+                return ServiceResult<SalesInvoiceResponseDto>.Fail("Sales invoice not found.", (int)HttpStatusCode.NotFound);
             }
 
+            var partLookup = new Dictionary<int, Part>();
+            foreach (var partId in invoice.Items.Select(item => item.PartId).Distinct())
+            {
+                var part = await _partRepository.GetByIdAsync(partId);
+                if (part is not null)
+                {
+                    partLookup[partId] = part;
+                }
+            }
+
+            var subtotal = invoice.Items.Sum(item => item.UnitPrice * item.Quantity);
             var response = new SalesInvoiceResponseDto
             {
                 InvoiceId = invoice.Id,
-                InvoiceNumber = invoice.InvoiceNumber,
-                CreatedAtUtc = invoice.CreatedAtUtc,
+                InvoiceNumber = BuildInvoiceNumber(invoice.Id),
+                CreatedAtUtc = invoice.InvoiceDate,
                 CustomerId = invoice.CustomerId,
                 CustomerName = invoice.Customer?.FullName ?? string.Empty,
-                SubTotalAmount = invoice.SubTotalAmount,
-                DiscountAmount = invoice.DiscountAmount,
+                SubTotalAmount = subtotal,
+                DiscountAmount = 0m,
                 TotalAmount = invoice.TotalAmount,
                 Items = invoice.Items
                     .Select(item => new SalesInvoiceItemResponseDto
                     {
                         PartId = item.PartId,
-                        PartName = item.Part?.Name ?? string.Empty,
-                        PartNumber = item.Part?.PartNumber ?? string.Empty,
+                        PartName = partLookup.TryGetValue(item.PartId, out var part) ? part.Name : string.Empty,
+                        PartNumber = partLookup.TryGetValue(item.PartId, out part) ? part.PartNumber : string.Empty,
                         Quantity = item.Quantity,
                         UnitPrice = item.UnitPrice,
-                        LineTotal = item.LineTotal
+                        LineTotal = item.UnitPrice * item.Quantity
                     })
                     .ToList()
             };
 
-            return ServiceResult<SalesInvoiceResponseDto>.Success(response, "Sales invoice fetched successfully.");
+            return ServiceResult<SalesInvoiceResponseDto>.Ok(response, "Sales invoice fetched successfully.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while fetching invoice {InvoiceId}.", invoiceId);
-            return ServiceResult<SalesInvoiceResponseDto>.Failure("Unable to fetch sales invoice right now.");
+            return ServiceResult<SalesInvoiceResponseDto>.Fail("Unable to fetch sales invoice right now.", (int)HttpStatusCode.InternalServerError);
         }
     }
 
-    private static string GenerateInvoiceNumber()
+    private static string BuildInvoiceNumber(int invoiceId)
     {
-        var randomSegment = Random.Shared.Next(1000, 9999);
-        return $"INV-{DateTime.UtcNow:yyyyMMddHHmmss}-{randomSegment}";
+        return $"INV-{invoiceId:D6}";
     }
 }

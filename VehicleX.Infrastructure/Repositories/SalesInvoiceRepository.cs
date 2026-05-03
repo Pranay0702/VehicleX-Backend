@@ -1,11 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using VehicleX.Application.Interfaces.Repositories;
+using SalesManagementRepository = VehicleX.Application.Interfaces.ISalesInvoiceRepository;
+using SalesReportingRepository = VehicleX.Application.Interfaces.Repositories.ISalesInvoiceRepository;
 using VehicleX.Domain.Entities;
 using VehicleX.Infrastructure.Data;
 
 namespace VehicleX.Infrastructure.Repositories;
 
-public class SalesInvoiceRepository : ISalesInvoiceRepository
+public class SalesInvoiceRepository : SalesManagementRepository, SalesReportingRepository
 {
     private readonly ApplicationDbContext _context;
 
@@ -26,5 +27,18 @@ public class SalesInvoiceRepository : ISalesInvoiceRepository
         return await _context.SalesInvoices
             .Include(s => s.Customer)
             .ToListAsync();
+    }
+
+    public async Task AddAsync(SalesInvoice salesInvoice, CancellationToken cancellationToken = default)
+    {
+        await _context.SalesInvoices.AddAsync(salesInvoice, cancellationToken);
+    }
+
+    public async Task<SalesInvoice?> GetByIdWithItemsAsync(int invoiceId, CancellationToken cancellationToken = default)
+    {
+        return await _context.SalesInvoices
+            .Include(invoice => invoice.Customer)
+            .Include(invoice => invoice.Items)
+            .FirstOrDefaultAsync(invoice => invoice.Id == invoiceId, cancellationToken);
     }
 }
