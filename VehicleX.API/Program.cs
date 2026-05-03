@@ -72,17 +72,21 @@ builder.Services.AddAuthentication(options =>
 // Repositories
 builder.Services.AddScoped<IVendorRepository,          VendorRepository>();
 builder.Services.AddScoped<IPartRepository,            PartRepository>();
-builder.Services.AddScoped<ICustomerRepository,        CustomerRepository>();
-builder.Services.AddScoped<ISalesInvoiceRepository,    SalesInvoiceRepository>();
+builder.Services.AddScoped<VehicleX.Application.Interfaces.ICustomerRepository,        CustomerRepository>();
+builder.Services.AddScoped<VehicleX.Application.Interfaces.Repositories.ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<VehicleX.Application.Interfaces.ISalesInvoiceRepository,    SalesInvoiceRepository>();
+builder.Services.AddScoped<VehicleX.Application.Interfaces.Repositories.ISalesInvoiceRepository, SalesInvoiceRepository>();
 builder.Services.AddScoped<IPurchaseInvoiceRepository, PurchaseInvoiceRepository>();
 
 // Services
-builder.Services.AddScoped<IVendorService,          VendorService>();
-builder.Services.AddScoped<ICustomerService,        CustomerService>();
-builder.Services.AddScoped<IStaffService,           StaffService>();
-builder.Services.AddScoped<IFinancialReportService, FinancialReportService>();
-builder.Services.AddScoped<ICustomerReportService,  CustomerReportService>();
-builder.Services.AddScoped<IJwtTokenService,        JwtTokenService>();
+builder.Services.AddScoped<IVendorService,             VendorService>();
+builder.Services.AddScoped<ICustomerService,           CustomerService>();
+builder.Services.AddScoped<IStaffService,              StaffService>();
+builder.Services.AddScoped<IFinancialReportService,    FinancialReportService>();
+builder.Services.AddScoped<ICustomerReportService,     CustomerReportService>();
+builder.Services.AddScoped<IJwtTokenService,           JwtTokenService>();
+builder.Services.AddScoped<ISalesManagementService,    SalesManagementService>();
+builder.Services.AddScoped<IRepositoryManager,         RepositoryManager>();
 
 // Controllers
 builder.Services.AddControllers()
@@ -109,7 +113,12 @@ builder.Services.AddControllers()
 
 // Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    // Use fully-qualified type names to avoid schema ID conflicts
+    // between the multiple ApiResponse<T> types in different namespaces.
+    c.CustomSchemaIds(type => type.FullName!.Replace("+", "."));
+});
 builder.Services.AddOpenApi();
 
 // CORS 

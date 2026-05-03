@@ -41,7 +41,7 @@ public class StaffController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateStaffRequest request, CancellationToken cancellationToken)
     {
         var result = await _staffService.CreateAsync(request, cancellationToken);
-        if (!result.Success)
+        if (!result.IsSuccess)
         {
             return ToActionResult(result);
         }
@@ -82,7 +82,7 @@ public class StaffController : ControllerBase
 
     private ObjectResult ToActionResult<T>(ServiceResult<T> result)
     {
-        var response = result.Success
+        var response = result.IsSuccess
             ? ApiResponse<T>.Ok(result.Data, result.Message)
             : ApiResponse<T>.Fail(result.Message, result.Errors);
 

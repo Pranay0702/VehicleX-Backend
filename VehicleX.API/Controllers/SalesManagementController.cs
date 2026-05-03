@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using VehicleX.API.Common;
-using VehicleX.Application.Common;
 using VehicleX.Application.DTOs;
 using VehicleX.Application.Interfaces;
+using AppCommon = VehicleX.Application.Common;
 
 namespace VehicleX.API.Controllers;
 
@@ -71,7 +71,7 @@ public class SalesManagementController : ControllerBase
         return MapResult(result);
     }
 
-    private IActionResult MapResult<T>(ServiceResult<T> result)
+    private IActionResult MapResult<T>(AppCommon.ServiceResult<T> result)
     {
         if (result.IsSuccess && result.Data is not null)
         {
@@ -82,9 +82,9 @@ public class SalesManagementController : ControllerBase
 
         return result.ErrorType switch
         {
-            ResultErrorType.Validation => BadRequest(errorResponse),
-            ResultErrorType.NotFound => NotFound(errorResponse),
-            ResultErrorType.Conflict => Conflict(errorResponse),
+            AppCommon.ResultErrorType.Validation => BadRequest(errorResponse),
+            AppCommon.ResultErrorType.NotFound => NotFound(errorResponse),
+            AppCommon.ResultErrorType.Conflict => Conflict(errorResponse),
             _ => StatusCode(StatusCodes.Status500InternalServerError, errorResponse)
         };
     }
