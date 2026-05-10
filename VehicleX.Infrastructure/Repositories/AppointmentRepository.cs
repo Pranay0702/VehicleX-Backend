@@ -19,6 +19,8 @@ public class AppointmentRepository : IAppointmentRepository
         return await _dbContext.Appointments
             .AsNoTracking()
             .Include(appointment => appointment.Customer)
+            .Include(appointment => appointment.ServiceReview)
+                .ThenInclude(review => review!.Customer)
             .OrderByDescending(appointment => appointment.AppointmentDateUtc)
             .ToListAsync(cancellationToken);
     }
@@ -28,6 +30,8 @@ public class AppointmentRepository : IAppointmentRepository
         return await _dbContext.Appointments
             .AsNoTracking()
             .Include(appointment => appointment.Customer)
+            .Include(appointment => appointment.ServiceReview)
+                .ThenInclude(review => review!.Customer)
             .Where(appointment => appointment.CustomerId == customerId)
             .OrderByDescending(appointment => appointment.AppointmentDateUtc)
             .ToListAsync(cancellationToken);
@@ -37,6 +41,8 @@ public class AppointmentRepository : IAppointmentRepository
     {
         return await _dbContext.Appointments
             .Include(appointment => appointment.Customer)
+            .Include(appointment => appointment.ServiceReview)
+                .ThenInclude(review => review!.Customer)
             .FirstOrDefaultAsync(appointment => appointment.Id == id, cancellationToken);
     }
 

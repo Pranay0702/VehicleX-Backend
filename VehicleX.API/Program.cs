@@ -13,6 +13,7 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IUnavailablePartRequestService, UnavailablePartRequestService>();
 builder.Services.AddScoped<IServiceReviewService, ServiceReviewService>();
+builder.Services.AddScoped<ICustomerHistoryService, CustomerHistoryService>();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers()
