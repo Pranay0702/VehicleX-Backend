@@ -15,6 +15,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<UnavailablePartRequest> UnavailablePartRequests => Set<UnavailablePartRequest>();
     public DbSet<ServiceReview> ServiceReviews => Set<ServiceReview>();
+    public DbSet<CustomerPurchase> CustomerPurchases => Set<CustomerPurchase>();
+    public DbSet<CustomerPurchaseItem> CustomerPurchaseItems => Set<CustomerPurchaseItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -284,6 +286,110 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(review => review.AppointmentId)
                 .IsUnique()
                 .HasFilter("appointment_id IS NOT NULL");
+        });
+
+        modelBuilder.Entity<CustomerPurchase>(entity =>
+        {
+            entity.ToTable("customer_purchases");
+
+            entity.HasKey(purchase => purchase.Id);
+
+            entity.Property(purchase => purchase.Id)
+                .HasColumnName("id");
+
+            entity.Property(purchase => purchase.CustomerId)
+                .HasColumnName("customer_id")
+                .IsRequired();
+
+            entity.Property(purchase => purchase.InvoiceNumber)
+                .HasColumnName("invoice_number")
+                .HasMaxLength(80)
+                .IsRequired();
+
+            entity.HasIndex(purchase => purchase.InvoiceNumber)
+                .IsUnique();
+
+            entity.Property(purchase => purchase.PurchaseDateUtc)
+                .HasColumnName("purchase_date_utc")
+                .IsRequired();
+
+            entity.Property(purchase => purchase.TotalAmount)
+                .HasColumnName("total_amount")
+                .HasPrecision(12, 2)
+                .IsRequired();
+
+            entity.ToTable(table => table.HasCheckConstraint("ck_customer_purchases_total_amount_non_negative", "total_amount >= 0"));
+
+            entity.Property(purchase => purchase.Status)
+                .HasColumnName("status")
+                .HasConversion<string>()
+                .HasMaxLength(40)
+                .IsRequired();
+
+            entity.Property(purchase => purchase.CreatedAtUtc)
+                .HasColumnName("created_at_utc")
+                .IsRequired();
+
+            entity.Property(purchase => purchase.UpdatedAtUtc)
+                .HasColumnName("updated_at_utc");
+
+            entity.HasOne(purchase => purchase.Customer)
+                .WithMany(customer => customer.Purchases)
+                .HasForeignKey(purchase => purchase.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CustomerPurchaseItem>(entity =>
+        {
+            entity.ToTable("customer_purchase_items");
+
+            entity.HasKey(item => item.Id);
+
+            entity.Property(item => item.Id)
+                .HasColumnName("id");
+
+            entity.Property(item => item.CustomerPurchaseId)
+                .HasColumnName("customer_purchase_id")
+                .IsRequired();
+
+            entity.Property(item => item.PartName)
+                .HasColumnName("part_name")
+                .HasMaxLength(160)
+                .IsRequired();
+
+            entity.Property(item => item.PartNumber)
+                .HasColumnName("part_number")
+                .HasMaxLength(80);
+
+            entity.Property(item => item.Quantity)
+                .HasColumnName("quantity")
+                .IsRequired();
+
+            entity.Property(item => item.UnitPrice)
+                .HasColumnName("unit_price")
+                .HasPrecision(12, 2)
+                .IsRequired();
+
+            entity.Property(item => item.LineTotal)
+                .HasColumnName("line_total")
+                .HasPrecision(12, 2)
+                .IsRequired();
+
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("ck_customer_purchase_items_quantity_positive", "quantity > 0");
+                table.HasCheckConstraint("ck_customer_purchase_items_unit_price_non_negative", "unit_price >= 0");
+                table.HasCheckConstraint("ck_customer_purchase_items_line_total_non_negative", "line_total >= 0");
+            });
+
+            entity.Property(item => item.CreatedAtUtc)
+                .HasColumnName("created_at_utc")
+                .IsRequired();
+
+            entity.HasOne(item => item.CustomerPurchase)
+                .WithMany(purchase => purchase.Items)
+                .HasForeignKey(item => item.CustomerPurchaseId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
