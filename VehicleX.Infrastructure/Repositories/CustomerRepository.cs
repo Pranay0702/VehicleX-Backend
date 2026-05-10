@@ -1,11 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using VehicleX.Application.Interfaces.Repositories;
+using SalesCustomerRepository = VehicleX.Application.Interfaces.ICustomerRepository;
+using CustomerRegistrationRepository = VehicleX.Application.Interfaces.Repositories.ICustomerRepository;
 using VehicleX.Domain.Entities;
 using VehicleX.Infrastructure.Data;
 
 namespace VehicleX.Infrastructure.Repositories;
 
-public class CustomerRepository : ICustomerRepository
+public class CustomerRepository : SalesCustomerRepository, CustomerRegistrationRepository
 {
     private readonly ApplicationDbContext _context;
 
@@ -39,5 +40,20 @@ public class CustomerRepository : ICustomerRepository
         return await _context.Customers
             .Include(c => c.Vehicles)
             .FirstOrDefaultAsync(c => c.Email.ToLower() == email.ToLower());
+    }
+
+    public async Task<List<Customer>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Customers
+            .AsNoTracking()
+            .OrderBy(customer => customer.FullName)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<Customer?> GetByIdAsync(int customerId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Customers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(customer => customer.Id == customerId, cancellationToken);
     }
 }
