@@ -76,7 +76,8 @@ builder.Services.AddScoped<VehicleX.Application.Interfaces.ICustomerRepository, 
 builder.Services.AddScoped<VehicleX.Application.Interfaces.Repositories.ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<VehicleX.Application.Interfaces.ISalesInvoiceRepository,    SalesInvoiceRepository>();
 builder.Services.AddScoped<VehicleX.Application.Interfaces.Repositories.ISalesInvoiceRepository, SalesInvoiceRepository>();
-builder.Services.AddScoped<IPurchaseInvoiceRepository, PurchaseInvoiceRepository>();
+builder.Services.AddScoped<VehicleX.Application.Interfaces.Repositories.IPurchaseInvoiceRepository, PurchaseInvoiceRepository>();
+builder.Services.AddScoped<IPurchaseRepository, PurchaseRepository>();
 
 // Services
 builder.Services.AddScoped<IVendorService,             VendorService>();
@@ -87,6 +88,7 @@ builder.Services.AddScoped<IFinancialReportService,    FinancialReportService>()
 builder.Services.AddScoped<ICustomerReportService,     CustomerReportService>();
 builder.Services.AddScoped<IJwtTokenService,           JwtTokenService>();
 builder.Services.AddScoped<ISalesManagementService,    SalesManagementService>();
+builder.Services.AddScoped<IPurchaseService,           PurchaseService>();
 builder.Services.AddScoped<IRepositoryManager,         RepositoryManager>();
 
 // Controllers

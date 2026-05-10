@@ -211,13 +211,6 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(i => i.SalesInvoiceId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // PurchaseInvoice to PurchaseInvoiceItems
-        modelBuilder.Entity<PurchaseInvoiceItem>()
-            .HasOne(i => i.PurchaseInvoice)
-            .WithMany(p => p.Items)
-            .HasForeignKey(i => i.PurchaseInvoiceId)
-            .OnDelete(DeleteBehavior.Cascade);
-
         // Decimal precision
         modelBuilder.Entity<SalesInvoice>()
             .Property(s => s.TotalAmount).HasPrecision(18, 2);

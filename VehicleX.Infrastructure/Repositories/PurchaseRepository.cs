@@ -34,35 +34,42 @@ public class PurchaseRepository : IPurchaseRepository
     
     public async Task<PurchaseInvoice> CreatePurchaseAsync(PurchaseInvoice invoice, List<Part> partsToUpdate)
     {
-        // Use a transaction to ensure atomicity both the invoice and stock updates succeed or fail together
-        using var transaction = await _context.Database.BeginTransactionAsync();
-
-        try
+        var strategy = _context.Database.CreateExecutionStrategy();
+        
+        return await strategy.ExecuteAsync(async () =>
         {
-            // purchase invoice with cascade to items
-            await _context.PurchaseInvoices.AddAsync(invoice);
+            // Use a transaction to ensure atomicity both the invoice and stock updates succeed or fail together
+            using var transaction = await _context.Database.BeginTransactionAsync();
 
-            foreach (var part in partsToUpdate)
+            try
             {
-                _context.Parts.Update(part);
+                // purchase invoice with cascade to items
+                await _context.PurchaseInvoices.AddAsync(invoice);
+
+                foreach (var part in partsToUpdate)
+                {
+                    _context.Parts.Update(part);
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return invoice;
             }
-
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            return invoice;
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        });
     }
     
     public async Task<int> GetTodaysPurchaseCountAsync()
     {
         var today = DateTime.UtcNow.Date;
+        var tomorrow = today.AddDays(1);
+        
         return await _context.PurchaseInvoices
-            .CountAsync(p => p.PurchaseDate.Date == today);
+            .CountAsync(p => p.PurchaseDate >= today && p.PurchaseDate < tomorrow);
     }
 }
