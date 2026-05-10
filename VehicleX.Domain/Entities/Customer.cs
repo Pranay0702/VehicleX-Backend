@@ -14,4 +14,5 @@ public class Customer
     public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
     public ICollection<UnavailablePartRequest> UnavailablePartRequests { get; set; } = new List<UnavailablePartRequest>();
     public ICollection<ServiceReview> ServiceReviews { get; set; } = new List<ServiceReview>();
+    public ICollection<CustomerPurchase> Purchases { get; set; } = new List<CustomerPurchase>();
 }
