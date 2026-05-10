@@ -22,6 +22,10 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString));
 
         services.AddScoped<IStaffRepository, StaffRepository>();
+        services.AddScoped<ICustomerRepository, CustomerRepository>();
+        services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+        services.AddScoped<IUnavailablePartRequestRepository, UnavailablePartRequestRepository>();
+        services.AddScoped<IServiceReviewRepository, ServiceReviewRepository>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
 
         return services;
