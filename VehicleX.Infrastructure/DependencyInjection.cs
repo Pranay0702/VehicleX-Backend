@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<IAppointmentRepository, AppointmentRepository>();
         services.AddScoped<IUnavailablePartRequestRepository, UnavailablePartRequestRepository>();
         services.AddScoped<IServiceReviewRepository, ServiceReviewRepository>();
+        services.AddScoped<ICustomerPurchaseRepository, CustomerPurchaseRepository>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
 
         return services;
