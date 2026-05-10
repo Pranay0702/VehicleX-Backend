@@ -40,8 +40,9 @@ public class VendorRepository : IVendorRepository
 
     public async Task<Vendor> AddAsync(Vendor vendor)
     {
-        await _context.Vendors.AddAsync(vendor);
+        _context.Vendors.Add(vendor);
         await _context.SaveChangesAsync();
+        _context.Entry(vendor).State = EntityState.Detached;
         return vendor;
     }
 

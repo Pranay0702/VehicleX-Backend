@@ -10,13 +10,11 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
 
         optionsBuilder.UseNpgsql(
-            "Host=aws-1-ap-northeast-1.pooler.supabase.com;" +
-            "Port=6543;" +
-            "Database=postgres;" +
-            "Username=postgres.hnhjdpwffatesxppysoo;" +
-            "Password=sNQOfvaD23vP;" +
-            "SSL Mode=Require;" +
-            "Trust Server Certificate=true"
+            "Host=localhost;" +
+            "Port=5432;" +
+            "Database=VehicleXDb;" +
+            "Username=postgres;" +
+            "Password=rohit"
         );
 
         return new ApplicationDbContext(optionsBuilder.Options);
