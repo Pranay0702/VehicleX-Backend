@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace VehicleX.Infrastructure.Data.Migrations
+namespace VehicleX.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -36,12 +36,37 @@ namespace VehicleX.Infrastructure.Data.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    InvoiceDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    TotalAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false)
+                    InvoiceNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    PurchaseDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    TotalAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    Notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_PurchaseInvoices", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "staff",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    first_name = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
+                    last_name = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
+                    email = table.Column<string>(type: "character varying(180)", maxLength: 180, nullable: false),
+                    phone_number = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
+                    role = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
+                    password_hash = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    is_active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    created_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updated_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_staff", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -111,47 +136,25 @@ namespace VehicleX.Infrastructure.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PurchaseInvoiceItems",
+                name: "Parts",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    PurchaseInvoiceId = table.Column<int>(type: "integer", nullable: false),
-                    PartId = table.Column<int>(type: "integer", nullable: false),
-                    Quantity = table.Column<int>(type: "integer", nullable: false),
-                    UnitPrice = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PurchaseInvoiceItems", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_PurchaseInvoiceItems_PurchaseInvoices_PurchaseInvoiceId",
-                        column: x => x.PurchaseInvoiceId,
-                        principalTable: "PurchaseInvoices",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Part",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    Description = table.Column<string>(type: "text", nullable: false),
-                    PartNumber = table.Column<string>(type: "text", nullable: false),
-                    Price = table.Column<decimal>(type: "numeric", nullable: false),
-                    StockQuantity = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    PartNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Price = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    StockQuantity = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     VendorId = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Part", x => x.Id);
+                    table.PrimaryKey("PK_Parts", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Part_Vendors_VendorId",
+                        name: "FK_Parts_Vendors_VendorId",
                         column: x => x.VendorId,
                         principalTable: "Vendors",
                         principalColumn: "Id",
@@ -180,14 +183,62 @@ namespace VehicleX.Infrastructure.Data.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "PurchaseItems",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PurchaseInvoiceId = table.Column<int>(type: "integer", nullable: false),
+                    PartId = table.Column<int>(type: "integer", nullable: false),
+                    Quantity = table.Column<int>(type: "integer", nullable: false),
+                    UnitPrice = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    TotalPrice = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PurchaseItems", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PurchaseItems_Parts_PartId",
+                        column: x => x.PartId,
+                        principalTable: "Parts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseItems_PurchaseInvoices_PurchaseInvoiceId",
+                        column: x => x.PurchaseInvoiceId,
+                        principalTable: "PurchaseInvoices",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
-                name: "IX_Part_VendorId",
-                table: "Part",
+                name: "IX_Parts_PartNumber",
+                table: "Parts",
+                column: "PartNumber",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Parts_VendorId",
+                table: "Parts",
                 column: "VendorId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PurchaseInvoiceItems_PurchaseInvoiceId",
-                table: "PurchaseInvoiceItems",
+                name: "IX_PurchaseInvoices_InvoiceNumber",
+                table: "PurchaseInvoices",
+                column: "InvoiceNumber",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseItems_PartId",
+                table: "PurchaseItems",
+                column: "PartId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseItems_PurchaseInvoiceId",
+                table: "PurchaseItems",
                 column: "PurchaseInvoiceId");
 
             migrationBuilder.CreateIndex(
@@ -199,6 +250,12 @@ namespace VehicleX.Infrastructure.Data.Migrations
                 name: "IX_SalesInvoices_CustomerId",
                 table: "SalesInvoices",
                 column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_staff_email",
+                table: "staff",
+                column: "email",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Vehicles_CustomerId",
@@ -216,25 +273,28 @@ namespace VehicleX.Infrastructure.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Part");
-
-            migrationBuilder.DropTable(
-                name: "PurchaseInvoiceItems");
+                name: "PurchaseItems");
 
             migrationBuilder.DropTable(
                 name: "SalesInvoiceItems");
 
             migrationBuilder.DropTable(
+                name: "staff");
+
+            migrationBuilder.DropTable(
                 name: "Vehicles");
 
             migrationBuilder.DropTable(
-                name: "Vendors");
+                name: "Parts");
 
             migrationBuilder.DropTable(
                 name: "PurchaseInvoices");
 
             migrationBuilder.DropTable(
                 name: "SalesInvoices");
+
+            migrationBuilder.DropTable(
+                name: "Vendors");
 
             migrationBuilder.DropTable(
                 name: "Customers");

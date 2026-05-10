@@ -18,4 +18,6 @@ public class Part : BaseEntity
 
     // Navigation property
     public Vendor Vendor { get; set; } = null!;
+    
+    public ICollection<PurchaseInvoiceItem> PurchaseItems { get; set; } = new List<PurchaseInvoiceItem>();
 }

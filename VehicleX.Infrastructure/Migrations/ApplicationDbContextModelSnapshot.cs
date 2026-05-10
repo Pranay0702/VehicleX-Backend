@@ -8,7 +8,7 @@ using VehicleX.Infrastructure.Data;
 
 #nullable disable
 
-namespace VehicleX.Infrastructure.Data.Migrations
+namespace VehicleX.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     partial class ApplicationDbContextModelSnapshot : ModelSnapshot
@@ -114,16 +114,34 @@ namespace VehicleX.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("InvoiceDate")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("PurchaseDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
-                    b.ToTable("PurchaseInvoices");
+                    b.HasIndex("InvoiceNumber")
+                        .IsUnique();
+
+                    b.ToTable("PurchaseInvoices", (string)null);
                 });
 
             modelBuilder.Entity("VehicleX.Domain.Entities.PurchaseInvoiceItem", b =>
@@ -134,6 +152,9 @@ namespace VehicleX.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("PartId")
                         .HasColumnType("integer");
 
@@ -143,15 +164,23 @@ namespace VehicleX.Infrastructure.Data.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("TotalPrice")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("PartId");
+
                     b.HasIndex("PurchaseInvoiceId");
 
-                    b.ToTable("PurchaseInvoiceItems");
+                    b.ToTable("PurchaseItems", (string)null);
                 });
 
             modelBuilder.Entity("VehicleX.Domain.Entities.SalesInvoice", b =>
@@ -375,11 +404,19 @@ namespace VehicleX.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("VehicleX.Domain.Entities.PurchaseInvoiceItem", b =>
                 {
+                    b.HasOne("VehicleX.Domain.Entities.Part", "Part")
+                        .WithMany("PurchaseItems")
+                        .HasForeignKey("PartId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("VehicleX.Domain.Entities.PurchaseInvoice", "PurchaseInvoice")
                         .WithMany("Items")
                         .HasForeignKey("PurchaseInvoiceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Part");
 
                     b.Navigation("PurchaseInvoice");
                 });
@@ -420,6 +457,11 @@ namespace VehicleX.Infrastructure.Data.Migrations
             modelBuilder.Entity("VehicleX.Domain.Entities.Customer", b =>
                 {
                     b.Navigation("Vehicles");
+                });
+
+            modelBuilder.Entity("VehicleX.Domain.Entities.Part", b =>
+                {
+                    b.Navigation("PurchaseItems");
                 });
 
             modelBuilder.Entity("VehicleX.Domain.Entities.PurchaseInvoice", b =>

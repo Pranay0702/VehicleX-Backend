@@ -15,10 +15,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<Vehicle> Vehicles { get; set; }
     public DbSet<Vendor> Vendors { get; set; } = null!;
     public DbSet<Part> Parts { get; set; } = null!;  
+    public DbSet<PurchaseInvoice> PurchaseInvoices { get; set; } = null!;
+    public DbSet<PurchaseInvoiceItem> PurchaseItems { get; set; } = null!;
     public DbSet<SalesInvoice> SalesInvoices { get; set; }
     public DbSet<SalesInvoiceItem> SalesInvoiceItems { get; set; }
-    public DbSet<PurchaseInvoice> PurchaseInvoices { get; set; }
-    public DbSet<PurchaseInvoiceItem> PurchaseInvoiceItems { get; set; }
+
     public DbSet<Staff> Staff => Set<Staff>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -144,7 +145,57 @@ public class ApplicationDbContext : DbContext
                 .IsRequired()
                 .HasDefaultValue(0);
             
+            // One-to-Many: Part → PurchaseItems
+            entity.HasMany(p => p.PurchaseItems)
+                .WithOne(pi => pi.Part)
+                .HasForeignKey(pi => pi.PartId)
+                .OnDelete(DeleteBehavior.Restrict);            
         });
+        
+        // PurchaseInvoice Configuration 
+        modelBuilder.Entity<PurchaseInvoice>(entity =>
+        {
+            entity.ToTable("PurchaseInvoices");
+            entity.HasKey(pi => pi.Id);
+
+            entity.Property(pi => pi.InvoiceNumber)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.HasIndex(pi => pi.InvoiceNumber)
+                .IsUnique();
+
+            entity.Property(pi => pi.TotalAmount)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
+
+            entity.Property(pi => pi.Notes)
+                .HasMaxLength(1000);
+
+            // One-to-Many: PurchaseInvoice → PurchaseItems
+            entity.HasMany(pi => pi.Items)
+                .WithOne(item => item.PurchaseInvoice)
+                .HasForeignKey(item => item.PurchaseInvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // PurchaseItem Configuration 
+        modelBuilder.Entity<PurchaseInvoiceItem>(entity =>
+        {
+            entity.ToTable("PurchaseItems");
+            entity.HasKey(pi => pi.Id);
+
+            entity.Property(pi => pi.Quantity)
+                .IsRequired();
+
+            entity.Property(pi => pi.UnitPrice)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
+
+            entity.Property(pi => pi.TotalPrice)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
+        });        
 
         // SalesInvoice to Customer (many invoices per customer)
         modelBuilder.Entity<SalesInvoice>()

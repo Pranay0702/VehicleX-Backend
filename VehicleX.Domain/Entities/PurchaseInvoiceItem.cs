@@ -1,16 +1,22 @@
-﻿namespace VehicleX.Domain.Entities;
+﻿using VehicleX.Domain.Common;
 
-public class PurchaseInvoiceItem
+namespace VehicleX.Domain.Entities;
+
+public class PurchaseInvoiceItem : BaseEntity
 {
-    public int Id { get; set; }
-
+    
+    
     public int PurchaseInvoiceId { get; set; }
-
+    
     public int PartId { get; set; }
-
+    
     public int Quantity { get; set; }
-
+    
     public decimal UnitPrice { get; set; }
+    
+    public decimal TotalPrice { get; set; }
 
+    // Navigation Properties
     public PurchaseInvoice PurchaseInvoice { get; set; } = null!;
+    public Part Part { get; set; } = null!;
 }
