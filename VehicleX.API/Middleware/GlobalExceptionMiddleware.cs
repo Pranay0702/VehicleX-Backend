@@ -24,7 +24,23 @@ public class GlobalExceptionMiddleware
         }
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
-            context.Response.StatusCode = StatusCodes.Status499ClientClosedRequest;
+            _logger.LogWarning("The request was cancelled by the client.");
+            await WriteErrorAsync(context, StatusCodes.Status499ClientClosedRequest, "The request was cancelled by the client.");
+        }
+        catch (BadHttpRequestException exception)
+        {
+            _logger.LogWarning(exception, "A malformed request was received.");
+            await WriteErrorAsync(context, HttpStatusCode.BadRequest, "The request could not be processed.");
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            _logger.LogWarning(exception, "A forbidden operation was attempted.");
+            await WriteErrorAsync(context, HttpStatusCode.Forbidden, "You are not allowed to perform this operation.");
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            _logger.LogError(exception, "A database concurrency conflict occurred.");
+            await WriteErrorAsync(context, HttpStatusCode.Conflict, "The record was updated or deleted by another process.");
         }
         catch (DbUpdateException exception)
         {
@@ -60,5 +76,10 @@ public class GlobalExceptionMiddleware
         });
 
         await context.Response.WriteAsync(json);
+    }
+
+    private static Task WriteErrorAsync(HttpContext context, int statusCode, string message)
+    {
+        return WriteErrorAsync(context, (HttpStatusCode)statusCode, message);
     }
 }
