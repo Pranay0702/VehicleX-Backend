@@ -7,6 +7,7 @@ This implementation focuses on the assigned customer workflow features:
 - Customers can book service appointments.
 - Customers can request unavailable vehicle parts.
 - Customers can review services.
+- Customers can view purchase and service history.
 
 ## Architecture
 
@@ -21,4 +22,8 @@ The solution follows Clean Architecture with four projects:
 ## Database
 
 Database provider: PostgreSQL
+
+## Customer History Endpoints
+
+Customers can view their complete history or filter it by purchase/service records:
 
