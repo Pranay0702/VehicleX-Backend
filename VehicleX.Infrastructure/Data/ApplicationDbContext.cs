@@ -14,6 +14,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Customer> Customers { get; set; }
     public DbSet<Vehicle> Vehicles { get; set; }
     public DbSet<Vendor> Vendors { get; set; } = null!;
+    public DbSet<Part> Parts { get; set; } = null!;  
     public DbSet<SalesInvoice> SalesInvoices { get; set; }
     public DbSet<SalesInvoiceItem> SalesInvoiceItems { get; set; }
     public DbSet<PurchaseInvoice> PurchaseInvoices { get; set; }
@@ -113,6 +114,36 @@ public class ApplicationDbContext : DbContext
                 .WithOne(p => p.Vendor)
                 .HasForeignKey(p => p.VendorId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+        
+        // Part Configuration
+        modelBuilder.Entity<Part>(entity =>
+        {
+            entity.ToTable("Parts");
+            entity.HasKey(p => p.Id);
+
+            entity.Property(p => p.Name)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(p => p.Description)
+                .HasMaxLength(1000);
+
+            entity.Property(p => p.PartNumber)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.HasIndex(p => p.PartNumber)
+                .IsUnique();
+
+            entity.Property(p => p.Price)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
+
+            entity.Property(p => p.StockQuantity)
+                .IsRequired()
+                .HasDefaultValue(0);
+            
         });
 
         // SalesInvoice to Customer (many invoices per customer)

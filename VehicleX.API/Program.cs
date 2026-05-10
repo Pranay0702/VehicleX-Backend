@@ -80,6 +80,7 @@ builder.Services.AddScoped<IPurchaseInvoiceRepository, PurchaseInvoiceRepository
 
 // Services
 builder.Services.AddScoped<IVendorService,             VendorService>();
+builder.Services.AddScoped<IPartService,               PartService>();
 builder.Services.AddScoped<ICustomerService,           CustomerService>();
 builder.Services.AddScoped<IStaffService,              StaffService>();
 builder.Services.AddScoped<IFinancialReportService,    FinancialReportService>();
