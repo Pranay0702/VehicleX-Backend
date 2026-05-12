@@ -19,6 +19,7 @@ public class CustomerService : ICustomerService
         _jwtTokenService = jwtTokenService;
     }
 
+    // This method allows staff to register a new customer along with their vehicle information. It checks for duplicate phone numbers and emails before saving the customer data to the database.
     public async Task<ApiResponse<CustomerResponseDto>> StaffRegisterCustomerAsync(StaffRegisterCustomerDto dto)
     {
         if (await _customerRepository.PhoneNumberExistsAsync(dto.PhoneNumber))
@@ -129,6 +130,7 @@ public class CustomerService : ICustomerService
         return ApiResponse<CustomerAuthResponseDto>.Ok(response, "Customer registered successfully.");
     }
 
+    // This method allows customers to log in by verifying their email and password, and if successful, generates a JWT token for authentication.
     public async Task<ApiResponse<CustomerAuthResponseDto>> CustomerLoginAsync(CustomerLoginDto dto)
     {
         var customer = await _customerRepository.GetByEmailAsync(dto.Email);
@@ -180,5 +182,42 @@ public class CustomerService : ICustomerService
             Message = "Customer logged in successfully.",
             Data = response
         };
+    }
+
+    // This method allows staff to search for customers based on a search term that can match the customer's name, email, or phone number.
+    public async Task<ApiResponse<List<CustomerSearchResultDto>>> SearchCustomersAsync(string searchTerm)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return ApiResponse<List<CustomerSearchResultDto>>.Fail("Search term is required.");
+        }
+
+        var customers = await _customerRepository.SearchCustomersAsync(searchTerm);
+
+        var response = customers.Select(customer => new CustomerSearchResultDto
+        {
+            Id = customer.Id,
+            FullName = customer.FullName,
+            PhoneNumber = customer.PhoneNumber,
+            Email = customer.Email,
+            Address = customer.Address,
+            CreatedAt = customer.CreatedAt,
+            Vehicles = customer.Vehicles.Select(vehicle => new VehicleResponseDto
+            {
+                Id = vehicle.Id,
+                VehicleNumber = vehicle.VehicleNumber,
+                Brand = vehicle.Brand,
+                Model = vehicle.Model,
+                Year = vehicle.Year,
+                FuelType = vehicle.FuelType
+            }).ToList()
+        }).ToList();
+
+        return ApiResponse<List<CustomerSearchResultDto>>.Ok(
+            response,
+            response.Any()
+                ? "Customers found successfully."
+                : "No customers matched the search term."
+        );
     }
 }

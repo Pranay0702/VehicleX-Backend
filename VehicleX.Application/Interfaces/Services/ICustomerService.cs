@@ -14,4 +14,7 @@ public interface ICustomerService
 
     // Service will check password + generate JWT.
     Task<ApiResponse<CustomerAuthResponseDto>> CustomerLoginAsync(CustomerLoginDto dto);
+
+    // Service will search for customers based on the search term and return a list of matching customers.
+    Task<ApiResponse<List<CustomerSearchResultDto>>> SearchCustomersAsync(string searchTerm);
 }

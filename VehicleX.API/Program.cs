@@ -16,11 +16,27 @@ using VehicleX.Infrastructure.Data;
 using VehicleX.Infrastructure.Repositories;
 using VehicleX.Infrastructure.Services;
 
-var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
-if (!File.Exists(envPath))
-    envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
-if (File.Exists(envPath))
-    Env.Load(envPath);
+var possibleEnvPaths = new[]
+{
+    Path.Combine(Directory.GetCurrentDirectory(), ".env"),
+    Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"),
+    Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"),
+    Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", ".env"),
+    Path.Combine(AppContext.BaseDirectory, ".env"),
+    Path.Combine(AppContext.BaseDirectory, "..", ".env"),
+    Path.Combine(AppContext.BaseDirectory, "..", "..", ".env"),
+    Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".env"),
+    Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".env"),
+};
+
+var envFilePath = possibleEnvPaths
+    .Select(Path.GetFullPath)
+    .FirstOrDefault(File.Exists);
+
+if (envFilePath != null)
+{
+    Env.Load(envFilePath);
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,7 +62,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtKey =
+    Environment.GetEnvironmentVariable("Jwt__Key")
+    ?? builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtKey))
     throw new InvalidOperationException("JWT key is missing. Add Jwt:Key to appsettings.json or .env.");
 
@@ -63,8 +81,8 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience         = true,
         ValidateLifetime         = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer              = builder.Configuration["Jwt:Issuer"],
-        ValidAudience            = builder.Configuration["Jwt:Audience"],
+        ValidIssuer = Environment.GetEnvironmentVariable("Jwt__Issuer") ?? builder.Configuration["Jwt:Issuer"],
+        ValidAudience = Environment.GetEnvironmentVariable("Jwt__Audience") ?? builder.Configuration["Jwt:Audience"],
         IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
     };
 });

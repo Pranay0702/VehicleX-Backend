@@ -56,4 +56,40 @@ public class CustomerRepository : SalesCustomerRepository, CustomerRegistrationR
             .AsNoTracking()
             .FirstOrDefaultAsync(customer => customer.Id == customerId, cancellationToken);
     }
+
+    public async Task<List<Customer>> SearchCustomersAsync(string searchTerm) //searches by credentials and vehicle number.
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return new List<Customer>();
+        }
+
+        var term = searchTerm.Trim();
+
+        var query = _context.Customers
+            .Include(c => c.Vehicles)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (int.TryParse(term, out var customerId))
+        {
+            query = query.Where(c => c.Id == customerId
+                || EF.Functions.ILike(c.FullName, $"%{term}%")
+                || EF.Functions.ILike(c.PhoneNumber, $"%{term}%")
+                || EF.Functions.ILike(c.Email, $"%{term}%")
+                || c.Vehicles.Any(v => EF.Functions.ILike(v.VehicleNumber, $"%{term}%")));
+        }
+        else
+        {
+            query = query.Where(c =>
+                EF.Functions.ILike(c.FullName, $"%{term}%")
+                || EF.Functions.ILike(c.PhoneNumber, $"%{term}%")
+                || EF.Functions.ILike(c.Email, $"%{term}%")
+                || c.Vehicles.Any(v => EF.Functions.ILike(v.VehicleNumber, $"%{term}%")));
+        }
+
+        return await query
+            .OrderBy(c => c.FullName)
+            .ToListAsync();
+    }
 }

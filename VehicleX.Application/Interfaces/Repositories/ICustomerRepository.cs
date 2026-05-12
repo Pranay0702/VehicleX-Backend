@@ -10,4 +10,5 @@ public interface ICustomerRepository
 
     Task<bool> EmailExistsAsync(string email);
     Task<Customer?> GetByEmailAsync(string email);
+    Task<List<Customer>> SearchCustomersAsync(string searchTerm);
 }
