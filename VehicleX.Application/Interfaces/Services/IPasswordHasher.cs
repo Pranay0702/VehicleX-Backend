@@ -1,4 +1,4 @@
-namespace VehicleX.Application.Interfaces;
+namespace VehicleX.Application.Interfaces.Services;
 
 public interface IPasswordHasher
 {

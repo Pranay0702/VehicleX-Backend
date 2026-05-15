@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text.Json;
-using VehicleX.Application.DTOs.Common;
+using VehicleX.Application.Common;
 
 namespace VehicleX.API.Middleware;
 

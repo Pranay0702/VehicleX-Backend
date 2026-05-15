@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using VehicleX.Application.DTOs.Email;
-using VehicleX.Application.Interfaces;
+using VehicleX.Application.Interfaces.Repositories;
+using VehicleX.Application.Interfaces.Services;
 
 namespace VehicleX.Application.Services;
 

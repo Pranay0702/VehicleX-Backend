@@ -1,12 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using SalesCustomerRepository = VehicleX.Application.Interfaces.ICustomerRepository;
-using CustomerRegistrationRepository = VehicleX.Application.Interfaces.Repositories.ICustomerRepository;
+using VehicleX.Application.Interfaces.Repositories;
 using VehicleX.Domain.Entities;
 using VehicleX.Infrastructure.Data;
-
 namespace VehicleX.Infrastructure.Repositories;
 
-public class CustomerRepository : SalesCustomerRepository, CustomerRegistrationRepository
+public class CustomerRepository : ICustomerRepository
 {
     private readonly ApplicationDbContext _context;
 

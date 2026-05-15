@@ -1,4 +1,4 @@
-namespace VehicleX.Application.Interfaces;
+namespace VehicleX.Application.Interfaces.Repositories;
 
 public interface IRepositoryManager
 {

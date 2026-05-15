@@ -1,4 +1,4 @@
-using VehicleX.Application.Interfaces;
+using VehicleX.Application.Interfaces.Services;
 
 namespace VehicleX.API.BackgroundServices;
 

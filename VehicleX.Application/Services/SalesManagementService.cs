@@ -2,7 +2,8 @@ using System.Net;
 using Microsoft.Extensions.Logging;
 using VehicleX.Application.Common;
 using VehicleX.Application.DTOs;
-using VehicleX.Application.Interfaces;
+using VehicleX.Application.Interfaces.Repositories;
+using VehicleX.Application.Interfaces.Services;
 using VehicleX.Domain.Entities;
 
 namespace VehicleX.Application.Services;

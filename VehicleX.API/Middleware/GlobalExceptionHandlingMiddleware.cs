@@ -1,4 +1,4 @@
-using VehicleX.API.Common;
+using VehicleX.Application.Common;
 
 namespace VehicleX.API.Middleware;
 

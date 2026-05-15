@@ -1,6 +1,6 @@
 using VehicleX.Application.DTOs.Email;
 
-namespace VehicleX.Application.Interfaces;
+namespace VehicleX.Application.Interfaces.Services;
 
 public interface IEmailService
 {

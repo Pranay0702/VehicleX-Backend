@@ -3,7 +3,7 @@ using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
 using VehicleX.Application.DTOs.Email;
-using VehicleX.Application.Interfaces;
+using VehicleX.Application.Interfaces.Services;
 
 namespace VehicleX.Infrastructure.Email;
 

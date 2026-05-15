@@ -1,7 +1,7 @@
-using VehicleX.Application.DTOs.Common;
+using VehicleX.Application.Common;
 using VehicleX.Application.DTOs.Vendor;
 
-namespace VehicleX.Application.Interfaces;
+namespace VehicleX.Application.Interfaces.Services;
 
 public interface IVendorService
 {

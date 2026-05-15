@@ -1,7 +1,7 @@
 using VehicleX.Application.Common;
 using VehicleX.Application.DTOs;
 
-namespace VehicleX.Application.Interfaces;
+namespace VehicleX.Application.Interfaces.Services;
 
 public interface IStaffService
 {

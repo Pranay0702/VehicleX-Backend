@@ -6,8 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using VehicleX.API.Middleware;
-using VehicleX.Application.DTOs.Common;
-using VehicleX.Application.Interfaces;
+using VehicleX.Application.Common;
 using VehicleX.Application.Interfaces.Repositories;
 using VehicleX.Application.Interfaces.Services;
 using VehicleX.Application.Services;
@@ -106,11 +105,10 @@ if (!string.IsNullOrWhiteSpace(adminEmail))
 // Repositories
 builder.Services.AddScoped<IVendorRepository,          VendorRepository>();
 builder.Services.AddScoped<IPartRepository,            PartRepository>();
-builder.Services.AddScoped<VehicleX.Application.Interfaces.ICustomerRepository,        CustomerRepository>();
-builder.Services.AddScoped<VehicleX.Application.Interfaces.Repositories.ICustomerRepository, CustomerRepository>();
-builder.Services.AddScoped<VehicleX.Application.Interfaces.ISalesInvoiceRepository,    SalesInvoiceRepository>();
-builder.Services.AddScoped<VehicleX.Application.Interfaces.Repositories.ISalesInvoiceRepository, SalesInvoiceRepository>();
-builder.Services.AddScoped<VehicleX.Application.Interfaces.Repositories.IPurchaseInvoiceRepository, PurchaseInvoiceRepository>();
+builder.Services.AddScoped<ICustomerRepository,        CustomerRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<ISalesInvoiceRepository, SalesInvoiceRepository>();
+builder.Services.AddScoped<IPurchaseInvoiceRepository, PurchaseInvoiceRepository>();
 builder.Services.AddScoped<IPurchaseRepository, PurchaseRepository>();
 
 // Services

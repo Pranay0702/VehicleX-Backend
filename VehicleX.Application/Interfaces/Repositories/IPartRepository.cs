@@ -1,6 +1,6 @@
 using VehicleX.Domain.Entities;
 
-namespace VehicleX.Application.Interfaces;
+namespace VehicleX.Application.Interfaces.Repositories;
 
 public interface IPartRepository
 {

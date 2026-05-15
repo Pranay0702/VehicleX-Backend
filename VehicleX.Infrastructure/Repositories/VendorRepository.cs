@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using VehicleX.Application.Interfaces;
+using VehicleX.Application.Interfaces.Repositories;
 using VehicleX.Domain.Entities;
 using VehicleX.Infrastructure.Data;
 
