@@ -7,4 +7,8 @@ public interface ISalesInvoiceRepository
     Task AddAsync(SalesInvoice salesInvoice, CancellationToken cancellationToken = default);
 
     Task<SalesInvoice?> GetByIdWithItemsAsync(int invoiceId, CancellationToken cancellationToken = default);
+
+    Task<IEnumerable<SalesInvoice>> GetByDateRangeAsync(DateTime from, DateTime to);
+
+    Task<IEnumerable<SalesInvoice>> GetAllWithCustomerAsync();
 }

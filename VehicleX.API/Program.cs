@@ -127,6 +127,8 @@ builder.Services.AddScoped<IRepositoryManager,         RepositoryManager>();
 builder.Services.Configure<VehicleX.Application.DTOs.Email.EmailSettings>(
     builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<IEmailService, VehicleX.Infrastructure.Email.EmailService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddHostedService<VehicleX.API.BackgroundServices.NotificationBackgroundService>();
 
 // Controllers
 builder.Services.AddControllers()
