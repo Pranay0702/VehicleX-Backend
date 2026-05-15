@@ -87,6 +87,22 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// Override email/admin settings from .env
+var emailPass = Environment.GetEnvironmentVariable("EmailSettings__Password");
+if (!string.IsNullOrWhiteSpace(emailPass))
+    builder.Configuration["EmailSettings:Password"] = emailPass;
+
+var emailUser = Environment.GetEnvironmentVariable("EmailSettings__Username");
+if (!string.IsNullOrWhiteSpace(emailUser))
+{
+    builder.Configuration["EmailSettings:Username"]    = emailUser;
+    builder.Configuration["EmailSettings:SenderEmail"] = emailUser;
+}
+
+var adminEmail = Environment.GetEnvironmentVariable("AdminSettings__Email");
+if (!string.IsNullOrWhiteSpace(adminEmail))
+    builder.Configuration["AdminSettings:Email"] = adminEmail;
+
 // Repositories
 builder.Services.AddScoped<IVendorRepository,          VendorRepository>();
 builder.Services.AddScoped<IPartRepository,            PartRepository>();
@@ -108,6 +124,9 @@ builder.Services.AddScoped<IJwtTokenService,           JwtTokenService>();
 builder.Services.AddScoped<ISalesManagementService,    SalesManagementService>();
 builder.Services.AddScoped<IPurchaseService,           PurchaseService>();
 builder.Services.AddScoped<IRepositoryManager,         RepositoryManager>();
+builder.Services.Configure<VehicleX.Application.DTOs.Email.EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddScoped<IEmailService, VehicleX.Infrastructure.Email.EmailService>();
 
 // Controllers
 builder.Services.AddControllers()
