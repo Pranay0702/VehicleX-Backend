@@ -105,7 +105,6 @@ if (!string.IsNullOrWhiteSpace(adminEmail))
 // Repositories
 builder.Services.AddScoped<IVendorRepository,          VendorRepository>();
 builder.Services.AddScoped<IPartRepository,            PartRepository>();
-builder.Services.AddScoped<ICustomerRepository,        CustomerRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ISalesInvoiceRepository, SalesInvoiceRepository>();
 builder.Services.AddScoped<IPurchaseInvoiceRepository, PurchaseInvoiceRepository>();
@@ -143,11 +142,12 @@ builder.Services.AddControllers()
         {
             var errors = context.ModelState
                 .Where(e => e.Value?.Errors.Count > 0)
-                .SelectMany(e => e.Value!.Errors.Select(err => err.ErrorMessage))
-                .ToList();
+                .ToDictionary(
+                    e => e.Key,
+                    e => e.Value!.Errors.Select(err => err.ErrorMessage).ToArray());
 
             return new BadRequestObjectResult(
-                ApiResponse<object>.FailureResponse("Validation failed.", errors));
+                ApiResponse<object>.Fail("Validation failed.", errors));
         };
     });
 
@@ -188,6 +188,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 // Auto-apply EF migrations on startup
