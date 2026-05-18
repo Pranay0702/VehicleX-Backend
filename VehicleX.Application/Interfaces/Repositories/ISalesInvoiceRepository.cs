@@ -11,4 +11,8 @@ public interface ISalesInvoiceRepository
     Task<IEnumerable<SalesInvoice>> GetByDateRangeAsync(DateTime from, DateTime to);
 
     Task<IEnumerable<SalesInvoice>> GetAllWithCustomerAsync();
+
+    Task<List<SalesInvoice>> GetByCustomerIdWithItemsAsync(
+        int customerId,
+        CancellationToken cancellationToken = default);
 }

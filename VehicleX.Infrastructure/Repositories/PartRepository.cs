@@ -30,6 +30,24 @@ public class PartRepository : IPartRepository
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
+    public async Task<List<Part>> GetByIdsAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default)
+    {
+        var uniqueIds = ids
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        if (uniqueIds.Count == 0)
+        {
+            return new List<Part>();
+        }
+
+        return await _context.Set<Part>()
+            .Where(p => uniqueIds.Contains(p.Id))
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> ExistsByPartNumberAsync(string partNumber, int? excludeId = null)
     {
         var normalized = partNumber.Trim().ToUpper();

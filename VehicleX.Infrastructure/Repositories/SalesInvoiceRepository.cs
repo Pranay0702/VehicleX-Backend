@@ -28,6 +28,18 @@ public class SalesInvoiceRepository : ISalesInvoiceRepository
             .ToListAsync();
     }
 
+    public async Task<List<SalesInvoice>> GetByCustomerIdWithItemsAsync(
+        int customerId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.SalesInvoices
+            .AsNoTracking()
+            .Include(invoice => invoice.Items)
+            .Where(invoice => invoice.CustomerId == customerId)
+            .OrderByDescending(invoice => invoice.InvoiceDate)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(SalesInvoice salesInvoice, CancellationToken cancellationToken = default)
     {
         await _context.SalesInvoices.AddAsync(salesInvoice, cancellationToken);

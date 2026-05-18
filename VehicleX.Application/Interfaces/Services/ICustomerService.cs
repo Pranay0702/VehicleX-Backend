@@ -35,4 +35,9 @@ public interface ICustomerService
 
     // Service will delete a specific vehicle from the customer's profile based on the customer ID and vehicle ID, and return a clean API response indicating the success or failure of the operation
     Task<ApiResponse<object>> DeleteVehicleAsync(int customerId, int vehicleId);
+
+    // Service will return customer details, vehicles, purchase history and service history (if available) for staff usage
+    Task<ApiResponse<CustomerDetailsHistoryResponseDto>> GetCustomerDetailsAndHistoryForStaffAsync(
+        int customerId,
+        CancellationToken cancellationToken = default);
 }
