@@ -1,7 +1,8 @@
 using System.Net;
 using VehicleX.Application.Common;
 using VehicleX.Application.DTOs;
-using VehicleX.Application.Interfaces;
+using VehicleX.Application.Interfaces.Repositories;
+using VehicleX.Application.Interfaces.Services;
 using VehicleX.Domain.Entities;
 using VehicleX.Domain.Enums;
 

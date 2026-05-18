@@ -1,12 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using SalesManagementRepository = VehicleX.Application.Interfaces.ISalesInvoiceRepository;
-using SalesReportingRepository = VehicleX.Application.Interfaces.Repositories.ISalesInvoiceRepository;
+using VehicleX.Application.Interfaces.Repositories;
 using VehicleX.Domain.Entities;
 using VehicleX.Infrastructure.Data;
 
 namespace VehicleX.Infrastructure.Repositories;
 
-public class SalesInvoiceRepository : SalesManagementRepository, SalesReportingRepository
+public class SalesInvoiceRepository : ISalesInvoiceRepository
 {
     private readonly ApplicationDbContext _context;
 

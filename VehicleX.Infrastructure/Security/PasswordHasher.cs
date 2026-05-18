@@ -1,5 +1,5 @@
 using System.Security.Cryptography;
-using VehicleX.Application.Interfaces;
+using VehicleX.Application.Interfaces.Services;
 
 namespace VehicleX.Infrastructure.Security;
 

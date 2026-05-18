@@ -1,4 +1,4 @@
-using VehicleX.Application.Interfaces;
+using VehicleX.Application.Interfaces.Repositories;
 using VehicleX.Infrastructure.Data;
 
 namespace VehicleX.Infrastructure.Repositories;

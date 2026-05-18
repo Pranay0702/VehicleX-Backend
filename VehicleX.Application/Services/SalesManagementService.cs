@@ -2,13 +2,17 @@ using System.Net;
 using Microsoft.Extensions.Logging;
 using VehicleX.Application.Common;
 using VehicleX.Application.DTOs;
-using VehicleX.Application.Interfaces;
+using VehicleX.Application.Interfaces.Repositories;
+using VehicleX.Application.Interfaces.Services;
 using VehicleX.Domain.Entities;
 
 namespace VehicleX.Application.Services;
 
 public class SalesManagementService : ISalesManagementService
 {
+    private const decimal LoyaltyDiscountThreshold = 5000m;
+    private const decimal LoyaltyDiscountRate = 0.10m;
+
     private readonly ICustomerRepository _customerRepository;
     private readonly IPartRepository _partRepository;
     private readonly ISalesInvoiceRepository _salesInvoiceRepository;
@@ -186,7 +190,8 @@ public class SalesManagementService : ISalesManagementService
                 });
             }
 
-            invoice.TotalAmount = subtotal;
+            var discountAmount = CalculateLoyaltyDiscount(subtotal);
+            invoice.TotalAmount = CalculateFinalPayableAmount(subtotal, discountAmount);
 
             await _salesInvoiceRepository.AddAsync(invoice, cancellationToken);
             await _repositoryManager.SaveChangesAsync(cancellationToken);
@@ -200,7 +205,7 @@ public class SalesManagementService : ISalesManagementService
                 CustomerId = customer.Id,
                 CustomerName = customer.FullName,
                 SubTotalAmount = subtotal,
-                DiscountAmount = 0m,
+                DiscountAmount = discountAmount,
                 TotalAmount = invoice.TotalAmount,
                 Items = invoice.Items
                     .Select(item => new SalesInvoiceItemResponseDto
@@ -258,6 +263,7 @@ public class SalesManagementService : ISalesManagementService
             }
 
             var subtotal = invoice.Items.Sum(item => item.UnitPrice * item.Quantity);
+            var discountAmount = CalculateStoredDiscountAmount(subtotal, invoice.TotalAmount);
             var response = new SalesInvoiceResponseDto
             {
                 InvoiceId = invoice.Id,
@@ -266,7 +272,7 @@ public class SalesManagementService : ISalesManagementService
                 CustomerId = invoice.CustomerId,
                 CustomerName = invoice.Customer?.FullName ?? string.Empty,
                 SubTotalAmount = subtotal,
-                DiscountAmount = 0m,
+                DiscountAmount = discountAmount,
                 TotalAmount = invoice.TotalAmount,
                 Items = invoice.Items
                     .Select(item => new SalesInvoiceItemResponseDto
@@ -293,5 +299,31 @@ public class SalesManagementService : ISalesManagementService
     private static string BuildInvoiceNumber(int invoiceId)
     {
         return $"INV-{invoiceId:D6}";
+    }
+
+    private static decimal CalculateLoyaltyDiscount(decimal subtotal)
+    {
+        if (subtotal <= LoyaltyDiscountThreshold)
+        {
+            return 0m;
+        }
+
+        return decimal.Round(subtotal * LoyaltyDiscountRate, 2, MidpointRounding.AwayFromZero);
+    }
+
+    private static decimal CalculateFinalPayableAmount(decimal subtotal, decimal discountAmount)
+    {
+        var finalAmount = subtotal - discountAmount;
+        return finalAmount < 0m ? 0m : finalAmount;
+    }
+
+    private static decimal CalculateStoredDiscountAmount(decimal subtotal, decimal totalAmount)
+    {
+        if (subtotal <= totalAmount)
+        {
+            return 0m;
+        }
+
+        return subtotal - totalAmount;
     }
 }

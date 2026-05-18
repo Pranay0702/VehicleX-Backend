@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using VehicleX.Application.DTOs.Common;
+using VehicleX.Application.Common;
 using VehicleX.Application.DTOs.Vendor;
-using VehicleX.Application.Interfaces;
+using VehicleX.Application.Interfaces.Services;
 
 namespace VehicleX.API.Controllers;
 

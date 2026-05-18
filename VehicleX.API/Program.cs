@@ -6,8 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using VehicleX.API.Middleware;
-using VehicleX.Application.DTOs.Common;
-using VehicleX.Application.Interfaces;
+using VehicleX.Application.Common;
 using VehicleX.Application.Interfaces.Repositories;
 using VehicleX.Application.Interfaces.Services;
 using VehicleX.Application.Services;
@@ -16,11 +15,27 @@ using VehicleX.Infrastructure.Data;
 using VehicleX.Infrastructure.Repositories;
 using VehicleX.Infrastructure.Services;
 
-var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
-if (!File.Exists(envPath))
-    envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
-if (File.Exists(envPath))
-    Env.Load(envPath);
+var possibleEnvPaths = new[]
+{
+    Path.Combine(Directory.GetCurrentDirectory(), ".env"),
+    Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"),
+    Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"),
+    Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", ".env"),
+    Path.Combine(AppContext.BaseDirectory, ".env"),
+    Path.Combine(AppContext.BaseDirectory, "..", ".env"),
+    Path.Combine(AppContext.BaseDirectory, "..", "..", ".env"),
+    Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".env"),
+    Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".env"),
+};
+
+var envFilePath = possibleEnvPaths
+    .Select(Path.GetFullPath)
+    .FirstOrDefault(File.Exists);
+
+if (envFilePath != null)
+{
+    Env.Load(envFilePath);
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,7 +61,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtKey =
+    Environment.GetEnvironmentVariable("Jwt__Key")
+    ?? builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtKey))
     throw new InvalidOperationException("JWT key is missing. Add Jwt:Key to appsettings.json or .env.");
 
@@ -63,30 +80,52 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience         = true,
         ValidateLifetime         = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer              = builder.Configuration["Jwt:Issuer"],
-        ValidAudience            = builder.Configuration["Jwt:Audience"],
+        ValidIssuer = Environment.GetEnvironmentVariable("Jwt__Issuer") ?? builder.Configuration["Jwt:Issuer"],
+        ValidAudience = Environment.GetEnvironmentVariable("Jwt__Audience") ?? builder.Configuration["Jwt:Audience"],
         IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
     };
 });
 
+// Override email/admin settings from .env
+var emailPass = Environment.GetEnvironmentVariable("EmailSettings__Password");
+if (!string.IsNullOrWhiteSpace(emailPass))
+    builder.Configuration["EmailSettings:Password"] = emailPass;
+
+var emailUser = Environment.GetEnvironmentVariable("EmailSettings__Username");
+if (!string.IsNullOrWhiteSpace(emailUser))
+{
+    builder.Configuration["EmailSettings:Username"]    = emailUser;
+    builder.Configuration["EmailSettings:SenderEmail"] = emailUser;
+}
+
+var adminEmail = Environment.GetEnvironmentVariable("AdminSettings__Email");
+if (!string.IsNullOrWhiteSpace(adminEmail))
+    builder.Configuration["AdminSettings:Email"] = adminEmail;
+
 // Repositories
 builder.Services.AddScoped<IVendorRepository,          VendorRepository>();
 builder.Services.AddScoped<IPartRepository,            PartRepository>();
-builder.Services.AddScoped<VehicleX.Application.Interfaces.ICustomerRepository,        CustomerRepository>();
-builder.Services.AddScoped<VehicleX.Application.Interfaces.Repositories.ICustomerRepository, CustomerRepository>();
-builder.Services.AddScoped<VehicleX.Application.Interfaces.ISalesInvoiceRepository,    SalesInvoiceRepository>();
-builder.Services.AddScoped<VehicleX.Application.Interfaces.Repositories.ISalesInvoiceRepository, SalesInvoiceRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<ISalesInvoiceRepository, SalesInvoiceRepository>();
 builder.Services.AddScoped<IPurchaseInvoiceRepository, PurchaseInvoiceRepository>();
+builder.Services.AddScoped<IPurchaseRepository, PurchaseRepository>();
 
 // Services
 builder.Services.AddScoped<IVendorService,             VendorService>();
+builder.Services.AddScoped<IPartService,               PartService>();
 builder.Services.AddScoped<ICustomerService,           CustomerService>();
 builder.Services.AddScoped<IStaffService,              StaffService>();
 builder.Services.AddScoped<IFinancialReportService,    FinancialReportService>();
 builder.Services.AddScoped<ICustomerReportService,     CustomerReportService>();
 builder.Services.AddScoped<IJwtTokenService,           JwtTokenService>();
 builder.Services.AddScoped<ISalesManagementService,    SalesManagementService>();
+builder.Services.AddScoped<IPurchaseService,           PurchaseService>();
 builder.Services.AddScoped<IRepositoryManager,         RepositoryManager>();
+builder.Services.Configure<VehicleX.Application.DTOs.Email.EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddScoped<IEmailService, VehicleX.Infrastructure.Email.EmailService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddHostedService<VehicleX.API.BackgroundServices.NotificationBackgroundService>();
 
 // Controllers
 builder.Services.AddControllers()
@@ -103,11 +142,12 @@ builder.Services.AddControllers()
         {
             var errors = context.ModelState
                 .Where(e => e.Value?.Errors.Count > 0)
-                .SelectMany(e => e.Value!.Errors.Select(err => err.ErrorMessage))
-                .ToList();
+                .ToDictionary(
+                    e => e.Key,
+                    e => e.Value!.Errors.Select(err => err.ErrorMessage).ToArray());
 
             return new BadRequestObjectResult(
-                ApiResponse<object>.FailureResponse("Validation failed.", errors));
+                ApiResponse<object>.Fail("Validation failed.", errors));
         };
     });
 
@@ -148,6 +188,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 // Auto-apply EF migrations on startup

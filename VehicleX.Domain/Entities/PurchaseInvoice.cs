@@ -1,12 +1,14 @@
-﻿namespace VehicleX.Domain.Entities;
+﻿using VehicleX.Domain.Common;
 
-public class PurchaseInvoice
+namespace VehicleX.Domain.Entities;
+
+public class PurchaseInvoice : BaseEntity
 {
-    public int Id { get; set; }
-
-    public DateTime InvoiceDate { get; set; } = DateTime.UtcNow;
-
+    public string InvoiceNumber { get; set; } = string.Empty;
+    public DateTime PurchaseDate { get; set; } = DateTime.UtcNow;
     public decimal TotalAmount { get; set; }
+    public string? Notes { get; set; }
 
+    // Navigation Properties
     public ICollection<PurchaseInvoiceItem> Items { get; set; } = new List<PurchaseInvoiceItem>();
 }

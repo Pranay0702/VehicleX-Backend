@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using VehicleX.Application.Interfaces;
+using VehicleX.Application.Interfaces.Repositories;
 using VehicleX.Domain.Entities;
 using VehicleX.Infrastructure.Data;
 
@@ -17,6 +17,8 @@ public class PartRepository : IPartRepository
     public async Task<IEnumerable<Part>> GetAllAsync()
     {
         return await _context.Set<Part>()
+            .Include(p => p.Vendor)
+            .OrderByDescending(p => p.CreatedAt)
             .AsNoTracking()
             .ToListAsync();
     }
@@ -24,6 +26,7 @@ public class PartRepository : IPartRepository
     public async Task<Part?> GetByIdAsync(int id)
     {
         return await _context.Set<Part>()
+            .Include(p => p.Vendor)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 

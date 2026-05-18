@@ -17,7 +17,7 @@ public class PurchaseInvoiceRepository : IPurchaseInvoiceRepository
     public async Task<IEnumerable<PurchaseInvoice>> GetByDateRangeAsync(DateTime from, DateTime to)
     {
         return await _context.PurchaseInvoices
-            .Where(p => p.InvoiceDate >= from && p.InvoiceDate < to)
+            .Where(p => p.PurchaseDate >= from && p.PurchaseDate < to)
             .ToListAsync();
     }
 }

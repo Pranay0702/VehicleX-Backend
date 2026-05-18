@@ -2,10 +2,6 @@ using VehicleX.Domain.Common;
 
 namespace VehicleX.Domain.Entities;
 
-/// <summary>
-/// Represents a vehicle part in the inventory.
-/// Fully implemented in Commit 3.
-/// </summary>
 public class Part : BaseEntity
 {
     public string Name { get; set; } = string.Empty;
@@ -22,4 +18,6 @@ public class Part : BaseEntity
 
     // Navigation property
     public Vendor Vendor { get; set; } = null!;
+    
+    public ICollection<PurchaseInvoiceItem> PurchaseItems { get; set; } = new List<PurchaseInvoiceItem>();
 }
