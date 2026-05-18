@@ -1,4 +1,5 @@
-﻿using VehicleX.Application.Common;
+﻿using Microsoft.Extensions.Logging;
+using VehicleX.Application.Common;
 using VehicleX.Application.DTOs.Customers;
 using VehicleX.Application.Interfaces.Repositories;
 using VehicleX.Application.Interfaces.Services;
@@ -9,14 +10,23 @@ namespace VehicleX.Application.Services;
 public class CustomerService : ICustomerService
 {
     private readonly ICustomerRepository _customerRepository;
+    private readonly ISalesInvoiceRepository _salesInvoiceRepository;
+    private readonly IPartRepository _partRepository;
     private readonly IJwtTokenService _jwtTokenService;
+    private readonly ILogger<CustomerService> _logger;
 
     public CustomerService(
         ICustomerRepository customerRepository,
-        IJwtTokenService jwtTokenService)
+        ISalesInvoiceRepository salesInvoiceRepository,
+        IPartRepository partRepository,
+        IJwtTokenService jwtTokenService,
+        ILogger<CustomerService> logger)
     {
         _customerRepository = customerRepository;
+        _salesInvoiceRepository = salesInvoiceRepository;
+        _partRepository = partRepository;
         _jwtTokenService = jwtTokenService;
+        _logger = logger;
     }
 
     // This method allows staff to register a new customer along with their vehicle information.
@@ -244,6 +254,104 @@ public class CustomerService : ICustomerService
         );
     }
 
+    public async Task<ApiResponse<CustomerDetailsHistoryResponseDto>> GetCustomerDetailsAndHistoryForStaffAsync(
+        int customerId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (customerId <= 0)
+            {
+                return ApiResponse<CustomerDetailsHistoryResponseDto>.Fail("CustomerId must be greater than 0.");
+            }
+
+            var customer = await _customerRepository.GetByIdWithVehiclesAsync(customerId);
+            if (customer is null)
+            {
+                return ApiResponse<CustomerDetailsHistoryResponseDto>.Fail("Customer not found.");
+            }
+
+            var invoices = await _salesInvoiceRepository.GetByCustomerIdWithItemsAsync(customerId, cancellationToken);
+            var distinctPartIds = invoices
+                .SelectMany(invoice => invoice.Items)
+                .Select(item => item.PartId)
+                .Distinct()
+                .ToList();
+
+            var parts = await _partRepository.GetByIdsAsync(distinctPartIds, cancellationToken);
+            var partLookup = parts.ToDictionary(part => part.Id, part => part);
+
+            var purchaseHistory = invoices
+                .OrderByDescending(invoice => invoice.InvoiceDate)
+                .Select(invoice =>
+                {
+                    var subtotal = invoice.Items.Sum(item => item.UnitPrice * item.Quantity);
+                    var discountAmount = subtotal > invoice.TotalAmount
+                        ? subtotal - invoice.TotalAmount
+                        : 0m;
+
+                    return new CustomerPurchaseHistoryDto
+                    {
+                        InvoiceId = invoice.Id,
+                        InvoiceNumber = BuildInvoiceNumber(invoice.Id),
+                        InvoiceDateUtc = invoice.InvoiceDate,
+                        SubTotalAmount = subtotal,
+                        DiscountAmount = discountAmount,
+                        TotalAmount = invoice.TotalAmount,
+                        IsCredit = invoice.IsCredit,
+                        IsCreditPaid = invoice.IsCreditPaid,
+                        Items = invoice.Items
+                            .Select(item => new CustomerPurchaseHistoryItemDto
+                            {
+                                PartId = item.PartId,
+                                PartName = partLookup.TryGetValue(item.PartId, out var part) ? part.Name : "Unknown Part",
+                                PartNumber = partLookup.TryGetValue(item.PartId, out part) ? part.PartNumber : "N/A",
+                                Quantity = item.Quantity,
+                                UnitPrice = item.UnitPrice,
+                                LineTotal = item.UnitPrice * item.Quantity
+                            })
+                            .ToList()
+                    };
+                })
+                .ToList();
+
+            var response = new CustomerDetailsHistoryResponseDto
+            {
+                CustomerId = customer.Id,
+                FullName = customer.FullName,
+                PhoneNumber = customer.PhoneNumber,
+                Email = customer.Email,
+                Address = customer.Address,
+                CustomerSinceUtc = customer.CreatedAt,
+                Vehicles = customer.Vehicles
+                    .Select(vehicle => new VehicleResponseDto
+                    {
+                        Id = vehicle.Id,
+                        VehicleNumber = vehicle.VehicleNumber,
+                        Brand = vehicle.Brand,
+                        Model = vehicle.Model,
+                        Year = vehicle.Year,
+                        FuelType = vehicle.FuelType
+                    })
+                    .OrderBy(vehicle => vehicle.VehicleNumber)
+                    .ToList(),
+                PurchaseHistory = purchaseHistory,
+                IsServiceHistoryAvailable = false,
+                ServiceHistory = new List<CustomerServiceHistoryDto>()
+            };
+
+            return ApiResponse<CustomerDetailsHistoryResponseDto>.Ok(
+                response,
+                "Customer details and history fetched successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while fetching details/history for customer {CustomerId}.", customerId);
+            return ApiResponse<CustomerDetailsHistoryResponseDto>.Fail(
+                "Unable to fetch customer details and history right now.");
+        }
+    }
+
     public async Task<ApiResponse<CustomerResponseDto>> GetProfileAsync(int customerId)
     {
         var customer = await _customerRepository.GetByIdWithVehiclesAsync(customerId);
@@ -433,5 +541,10 @@ public class CustomerService : ICustomerService
         }
 
         return ApiResponse<object>.Ok(null, "Vehicle deleted successfully.");
+    }
+
+    private static string BuildInvoiceNumber(int invoiceId)
+    {
+        return $"INV-{invoiceId:D6}";
     }
 }

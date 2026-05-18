@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using VehicleX.Application.Common;
 using VehicleX.Application.DTOs.Customers;
 using VehicleX.Application.Interfaces.Services;
 
@@ -72,6 +73,39 @@ public class CustomersController : ControllerBase
         }
 
         return Ok(result);
+    }
+
+    // allows staff to view customer details, vehicle details, purchase history, and service history (if available)
+    [HttpGet("staff/{customerId:int}/details-history")]
+    [ProducesResponseType(typeof(ApiResponse<CustomerDetailsHistoryResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<CustomerDetailsHistoryResponseDto>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<CustomerDetailsHistoryResponseDto>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<CustomerDetailsHistoryResponseDto>), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetCustomerDetailsAndHistoryForStaff(int customerId, CancellationToken cancellationToken)
+    {
+        if (customerId <= 0)
+        {
+            return BadRequest(ApiResponse<CustomerDetailsHistoryResponseDto>.Fail("CustomerId must be greater than 0."));
+        }
+
+        var result = await _customerService.GetCustomerDetailsAndHistoryForStaffAsync(customerId, cancellationToken);
+
+        if (result.Success)
+        {
+            return Ok(result);
+        }
+
+        if (string.Equals(result.Message, "Customer not found.", StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(result);
+        }
+
+        if (string.Equals(result.Message, "Unable to fetch customer details and history right now.", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, result);
+        }
+
+        return BadRequest(result);
     }
 
     // allows customers to retrieve their profile information, including their personal details and associated vehicles
