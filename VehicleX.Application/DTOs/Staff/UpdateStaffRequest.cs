@@ -1,9 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using VehicleX.Domain.Enums;
 
-namespace VehicleX.Application.DTOs;
+namespace VehicleX.Application.DTOs.Staff;
 
-public class CreateStaffRequest
+public class UpdateStaffRequest
 {
     [Required, StringLength(80, MinimumLength = 2)]
     public string FirstName { get; set; } = string.Empty;
@@ -20,6 +20,5 @@ public class CreateStaffRequest
     [Required]
     public StaffRole Role { get; set; }
 
-    [Required, StringLength(100, MinimumLength = 8)]
-    public string Password { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
 }

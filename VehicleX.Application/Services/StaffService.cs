@@ -1,6 +1,5 @@
-using System.Net;
 using VehicleX.Application.Common;
-using VehicleX.Application.DTOs;
+using VehicleX.Application.DTOs.Staff;
 using VehicleX.Application.Interfaces.Repositories;
 using VehicleX.Application.Interfaces.Services;
 using VehicleX.Domain.Entities;
@@ -19,12 +18,12 @@ public class StaffService : IStaffService
         _passwordHasher = passwordHasher;
     }
 
-    public async Task<ServiceResult<IReadOnlyList<StaffResponse>>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<ApiResponse<IReadOnlyList<StaffResponse>>> GetAllAsync(CancellationToken cancellationToken)
     {
         try
         {
             var staff = await _staffRepository.GetAllAsync(cancellationToken);
-            return ServiceResult<IReadOnlyList<StaffResponse>>.Ok(staff.Select(ToResponse).ToList(), "Staff records retrieved successfully.");
+            return ApiResponse<IReadOnlyList<StaffResponse>>.Ok(staff.Select(ToResponse).ToList(), "Staff records retrieved successfully.");
         }
         catch (Exception)
         {
@@ -32,22 +31,22 @@ public class StaffService : IStaffService
         }
     }
 
-    public async Task<ServiceResult<StaffResponse>> GetByIdAsync(int id, CancellationToken cancellationToken)
+    public async Task<ApiResponse<StaffResponse>> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
         try
         {
             if (id <= 0)
             {
-                return ServiceResult<StaffResponse>.Fail("Invalid staff id.", (int)HttpStatusCode.BadRequest);
+                return ApiResponse<StaffResponse>.Fail("Invalid staff id.");
             }
 
             var staff = await _staffRepository.GetByIdAsync(id, cancellationToken);
             if (staff is null)
             {
-                return ServiceResult<StaffResponse>.Fail("Staff member was not found.", (int)HttpStatusCode.NotFound);
+                return ApiResponse<StaffResponse>.Fail("Staff member was not found.");
             }
 
-            return ServiceResult<StaffResponse>.Ok(ToResponse(staff), "Staff record retrieved successfully.");
+            return ApiResponse<StaffResponse>.Ok(ToResponse(staff), "Staff record retrieved successfully.");
         }
         catch (Exception)
         {
@@ -55,20 +54,20 @@ public class StaffService : IStaffService
         }
     }
 
-    public async Task<ServiceResult<StaffResponse>> CreateAsync(CreateStaffRequest request, CancellationToken cancellationToken)
+    public async Task<ApiResponse<StaffResponse>> CreateAsync(CreateStaffRequest request, CancellationToken cancellationToken)
     {
         try
         {
             var validationErrors = ValidateRole(request.Role);
             if (validationErrors.Count > 0)
             {
-                return ServiceResult<StaffResponse>.Fail("Validation failed.", (int)HttpStatusCode.BadRequest, validationErrors);
+                return ApiResponse<StaffResponse>.Fail("Validation failed.", validationErrors);
             }
 
             var email = NormalizeEmail(request.Email);
             if (await _staffRepository.EmailExistsAsync(email, null, cancellationToken))
             {
-                return ServiceResult<StaffResponse>.Fail("A staff member with this email already exists.", (int)HttpStatusCode.Conflict);
+                return ApiResponse<StaffResponse>.Fail("A staff member with this email already exists.");
             }
 
             var staff = new Staff
@@ -86,7 +85,7 @@ public class StaffService : IStaffService
             await _staffRepository.AddAsync(staff, cancellationToken);
             await _staffRepository.SaveChangesAsync(cancellationToken);
 
-            return ServiceResult<StaffResponse>.Ok(ToResponse(staff), "Staff member registered successfully.", (int)HttpStatusCode.Created);
+            return ApiResponse<StaffResponse>.Ok(ToResponse(staff), "Staff member registered successfully.");
         }
         catch (Exception)
         {
@@ -94,31 +93,31 @@ public class StaffService : IStaffService
         }
     }
 
-    public async Task<ServiceResult<StaffResponse>> UpdateAsync(int id, UpdateStaffRequest request, CancellationToken cancellationToken)
+    public async Task<ApiResponse<StaffResponse>> UpdateAsync(int id, UpdateStaffRequest request, CancellationToken cancellationToken)
     {
         try
         {
             if (id <= 0)
             {
-                return ServiceResult<StaffResponse>.Fail("Invalid staff id.", (int)HttpStatusCode.BadRequest);
+                return ApiResponse<StaffResponse>.Fail("Invalid staff id.");
             }
 
             var validationErrors = ValidateRole(request.Role);
             if (validationErrors.Count > 0)
             {
-                return ServiceResult<StaffResponse>.Fail("Validation failed.", (int)HttpStatusCode.BadRequest, validationErrors);
+                return ApiResponse<StaffResponse>.Fail("Validation failed.", validationErrors);
             }
 
             var staff = await _staffRepository.GetByIdAsync(id, cancellationToken);
             if (staff is null)
             {
-                return ServiceResult<StaffResponse>.Fail("Staff member was not found.", (int)HttpStatusCode.NotFound);
+                return ApiResponse<StaffResponse>.Fail("Staff member was not found.");
             }
 
             var email = NormalizeEmail(request.Email);
             if (await _staffRepository.EmailExistsAsync(email, id, cancellationToken))
             {
-                return ServiceResult<StaffResponse>.Fail("A staff member with this email already exists.", (int)HttpStatusCode.Conflict);
+                return ApiResponse<StaffResponse>.Fail("A staff member with this email already exists.");
             }
 
             staff.FirstName = request.FirstName.Trim();
@@ -132,7 +131,7 @@ public class StaffService : IStaffService
             _staffRepository.Update(staff);
             await _staffRepository.SaveChangesAsync(cancellationToken);
 
-            return ServiceResult<StaffResponse>.Ok(ToResponse(staff), "Staff member updated successfully.");
+            return ApiResponse<StaffResponse>.Ok(ToResponse(staff), "Staff member updated successfully.");
         }
         catch (Exception)
         {
@@ -140,25 +139,25 @@ public class StaffService : IStaffService
         }
     }
 
-    public async Task<ServiceResult<StaffResponse>> UpdateRoleAsync(int id, UpdateStaffRoleRequest request, CancellationToken cancellationToken)
+    public async Task<ApiResponse<StaffResponse>> UpdateRoleAsync(int id, UpdateStaffRoleRequest request, CancellationToken cancellationToken)
     {
         try
         {
             if (id <= 0)
             {
-                return ServiceResult<StaffResponse>.Fail("Invalid staff id.", (int)HttpStatusCode.BadRequest);
+                return ApiResponse<StaffResponse>.Fail("Invalid staff id.");
             }
 
             var validationErrors = ValidateRole(request.Role);
             if (validationErrors.Count > 0)
             {
-                return ServiceResult<StaffResponse>.Fail("Validation failed.", (int)HttpStatusCode.BadRequest, validationErrors);
+                return ApiResponse<StaffResponse>.Fail("Validation failed.", validationErrors);
             }
 
             var staff = await _staffRepository.GetByIdAsync(id, cancellationToken);
             if (staff is null)
             {
-                return ServiceResult<StaffResponse>.Fail("Staff member was not found.", (int)HttpStatusCode.NotFound);
+                return ApiResponse<StaffResponse>.Fail("Staff member was not found.");
             }
 
             staff.Role = request.Role;
@@ -167,7 +166,7 @@ public class StaffService : IStaffService
             _staffRepository.Update(staff);
             await _staffRepository.SaveChangesAsync(cancellationToken);
 
-            return ServiceResult<StaffResponse>.Ok(ToResponse(staff), "Staff role updated successfully.");
+            return ApiResponse<StaffResponse>.Ok(ToResponse(staff), "Staff role updated successfully.");
         }
         catch (Exception)
         {
@@ -175,25 +174,25 @@ public class StaffService : IStaffService
         }
     }
 
-    public async Task<ServiceResult<object>> DeleteAsync(int id, CancellationToken cancellationToken)
+    public async Task<ApiResponse<object>> DeleteAsync(int id, CancellationToken cancellationToken)
     {
         try
         {
             if (id <= 0)
             {
-                return ServiceResult<object>.Fail("Invalid staff id.", (int)HttpStatusCode.BadRequest);
+                return ApiResponse<object>.Fail("Invalid staff id.");
             }
 
             var staff = await _staffRepository.GetByIdAsync(id, cancellationToken);
             if (staff is null)
             {
-                return ServiceResult<object>.Fail("Staff member was not found.", (int)HttpStatusCode.NotFound);
+                return ApiResponse<object>.Fail("Staff member was not found.");
             }
 
             _staffRepository.Delete(staff);
             await _staffRepository.SaveChangesAsync(cancellationToken);
 
-            return ServiceResult<object>.Ok(null, "Staff member deleted successfully.");
+            return ApiResponse<object>.Ok(null, "Staff member deleted successfully.");
         }
         catch (Exception)
         {

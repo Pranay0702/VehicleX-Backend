@@ -8,23 +8,23 @@ public interface ICustomerRepository
 
     Task<Customer?> GetByIdAsync(int customerId, CancellationToken cancellationToken = default);
 
-    Task<Customer> AddAsync(Customer customer);
-
-    Task<bool> PhoneNumberExistsAsync(string phoneNumber);
-
-    Task<bool> EmailExistsAsync(string email);
+    Task<Customer?> GetByIdWithVehiclesAsync(int customerId);
 
     Task<Customer?> GetByEmailAsync(string email);
 
-    Task<List<Customer>> SearchCustomersAsync(string searchTerm);
+    Task<Customer> AddAsync(Customer customer);
+
+    Task<Customer> UpdateAsync(Customer customer);
+
+    Task<bool> PhoneNumberExistsAsync(string phoneNumber);
+    
+    Task<bool> EmailExistsAsync(string email, int? excludedCustomerId = null);
 
     Task<bool> VehicleNumberExistsAsync(string vehicleNumber);
 
-    Task<Customer?> GetByIdWithVehiclesAsync(int customerId);
+    Task<bool> VehicleNumberExistsForOtherCustomerAsync(string vehicleNumber, int customerId, int? vehicleId = null);
 
-    Task<Customer?> GetByIdAsync(int customerId);
-
-    Task<Customer> UpdateAsync(Customer customer);
+    Task<List<Customer>> SearchCustomersAsync(string searchTerm);
 
     Task<List<Vehicle>> GetVehiclesByCustomerIdAsync(int customerId);
 
@@ -36,5 +36,5 @@ public interface ICustomerRepository
 
     Task<bool> DeleteVehicleAsync(Vehicle vehicle);
 
-    Task<bool> VehicleNumberExistsForOtherCustomerAsync(string vehicleNumber, int customerId, int? vehicleId = null);
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

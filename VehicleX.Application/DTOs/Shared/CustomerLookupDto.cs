@@ -1,4 +1,4 @@
-namespace VehicleX.Application.DTOs;
+namespace VehicleX.Application.DTOs.Shared;
 
 public class CustomerLookupDto
 {

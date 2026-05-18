@@ -1,19 +1,20 @@
 using VehicleX.Application.Common;
-using VehicleX.Application.DTOs;
+using VehicleX.Application.DTOs.Sales;
+using VehicleX.Application.DTOs.Shared;
 
 namespace VehicleX.Application.Interfaces.Services;
 
 public interface ISalesManagementService
 {
-    Task<ServiceResult<List<CustomerLookupDto>>> GetCustomersAsync(CancellationToken cancellationToken = default);
+    Task<ApiResponse<List<CustomerLookupDto>>> GetCustomersAsync(CancellationToken cancellationToken = default);
 
-    Task<ServiceResult<List<PartLookupDto>>> GetPartsAsync(CancellationToken cancellationToken = default);
+    Task<ApiResponse<List<PartLookupDto>>> GetPartsAsync(CancellationToken cancellationToken = default);
 
-    Task<ServiceResult<SalesInvoiceResponseDto>> CreateSalesInvoiceAsync(
+    Task<ApiResponse<SalesInvoiceResponseDto>> CreateSalesInvoiceAsync(
         CreateSalesInvoiceRequestDto request,
         CancellationToken cancellationToken = default);
 
-    Task<ServiceResult<SalesInvoiceResponseDto>> GetSalesInvoiceByIdAsync(
+    Task<ApiResponse<SalesInvoiceResponseDto>> GetSalesInvoiceByIdAsync(
         int invoiceId,
         CancellationToken cancellationToken = default);
 }

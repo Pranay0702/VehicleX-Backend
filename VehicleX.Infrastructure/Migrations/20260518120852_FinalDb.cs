@@ -7,27 +7,29 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace VehicleX.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class FinalDb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Customers",
+                name: "customers",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "integer", nullable: false)
+                    id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    FullName = table.Column<string>(type: "text", nullable: false),
-                    PhoneNumber = table.Column<string>(type: "text", nullable: false),
-                    Email = table.Column<string>(type: "text", nullable: false),
-                    Address = table.Column<string>(type: "text", nullable: true),
-                    PasswordHash = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    full_name = table.Column<string>(type: "character varying(160)", maxLength: 160, nullable: false),
+                    email = table.Column<string>(type: "character varying(180)", maxLength: 180, nullable: false),
+                    phone_number = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    address = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    password_hash = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    is_active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Customers", x => x.Id);
+                    table.PrimaryKey("PK_customers", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -89,6 +91,60 @@ namespace VehicleX.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "appointments",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    customer_id = table.Column<int>(type: "integer", nullable: false),
+                    appointment_date_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    service_type = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    vehicle_make = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true),
+                    vehicle_model = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true),
+                    vehicle_registration_number = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
+                    notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    status = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
+                    created_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updated_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_appointments", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_appointments_customers_customer_id",
+                        column: x => x.customer_id,
+                        principalTable: "customers",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "customer_purchases",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    customer_id = table.Column<int>(type: "integer", nullable: false),
+                    invoice_number = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
+                    purchase_date_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    total_amount = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false),
+                    status = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
+                    created_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updated_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_customer_purchases", x => x.id);
+                    table.CheckConstraint("ck_customer_purchases_total_amount_non_negative", "total_amount >= 0");
+                    table.ForeignKey(
+                        name: "FK_customer_purchases_customers_customer_id",
+                        column: x => x.customer_id,
+                        principalTable: "customers",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "SalesInvoices",
                 columns: table => new
                 {
@@ -104,10 +160,39 @@ namespace VehicleX.Infrastructure.Migrations
                 {
                     table.PrimaryKey("PK_SalesInvoices", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_SalesInvoices_Customers_CustomerId",
+                        name: "FK_SalesInvoices_customers_CustomerId",
                         column: x => x.CustomerId,
-                        principalTable: "Customers",
-                        principalColumn: "Id",
+                        principalTable: "customers",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "unavailable_part_requests",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    customer_id = table.Column<int>(type: "integer", nullable: false),
+                    part_name = table.Column<string>(type: "character varying(160)", maxLength: 160, nullable: false),
+                    part_number = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true),
+                    vehicle_make = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true),
+                    vehicle_model = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true),
+                    quantity = table.Column<int>(type: "integer", nullable: false),
+                    notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    status = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
+                    created_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updated_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_unavailable_part_requests", x => x.id);
+                    table.CheckConstraint("ck_unavailable_part_requests_quantity_positive", "quantity > 0");
+                    table.ForeignKey(
+                        name: "FK_unavailable_part_requests_customers_customer_id",
+                        column: x => x.customer_id,
+                        principalTable: "customers",
+                        principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -128,11 +213,11 @@ namespace VehicleX.Infrastructure.Migrations
                 {
                     table.PrimaryKey("PK_Vehicles", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Vehicles_Customers_CustomerId",
+                        name: "FK_Vehicles_customers_CustomerId",
                         column: x => x.CustomerId,
-                        principalTable: "Customers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalTable: "customers",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -159,6 +244,65 @@ namespace VehicleX.Infrastructure.Migrations
                         principalTable: "Vendors",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "service_reviews",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    customer_id = table.Column<int>(type: "integer", nullable: false),
+                    appointment_id = table.Column<int>(type: "integer", nullable: true),
+                    rating = table.Column<int>(type: "integer", nullable: false),
+                    comment = table.Column<string>(type: "character varying(1200)", maxLength: 1200, nullable: false),
+                    created_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updated_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_service_reviews", x => x.id);
+                    table.CheckConstraint("ck_service_reviews_rating_range", "rating >= 1 AND rating <= 5");
+                    table.ForeignKey(
+                        name: "FK_service_reviews_appointments_appointment_id",
+                        column: x => x.appointment_id,
+                        principalTable: "appointments",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_service_reviews_customers_customer_id",
+                        column: x => x.customer_id,
+                        principalTable: "customers",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "customer_purchase_items",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    customer_purchase_id = table.Column<int>(type: "integer", nullable: false),
+                    part_name = table.Column<string>(type: "character varying(160)", maxLength: 160, nullable: false),
+                    part_number = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true),
+                    quantity = table.Column<int>(type: "integer", nullable: false),
+                    unit_price = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false),
+                    line_total = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false),
+                    created_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_customer_purchase_items", x => x.id);
+                    table.CheckConstraint("ck_customer_purchase_items_line_total_non_negative", "line_total >= 0");
+                    table.CheckConstraint("ck_customer_purchase_items_quantity_positive", "quantity > 0");
+                    table.CheckConstraint("ck_customer_purchase_items_unit_price_non_negative", "unit_price >= 0");
+                    table.ForeignKey(
+                        name: "FK_customer_purchase_items_customer_purchases_customer_purchas~",
+                        column: x => x.customer_purchase_id,
+                        principalTable: "customer_purchases",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -215,6 +359,33 @@ namespace VehicleX.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_appointments_customer_id",
+                table: "appointments",
+                column: "customer_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_customer_purchase_items_customer_purchase_id",
+                table: "customer_purchase_items",
+                column: "customer_purchase_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_customer_purchases_customer_id",
+                table: "customer_purchases",
+                column: "customer_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_customer_purchases_invoice_number",
+                table: "customer_purchases",
+                column: "invoice_number",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_customers_email",
+                table: "customers",
+                column: "email",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Parts_PartNumber",
                 table: "Parts",
                 column: "PartNumber",
@@ -252,10 +423,27 @@ namespace VehicleX.Infrastructure.Migrations
                 column: "CustomerId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_service_reviews_appointment_id",
+                table: "service_reviews",
+                column: "appointment_id",
+                unique: true,
+                filter: "appointment_id IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_service_reviews_customer_id",
+                table: "service_reviews",
+                column: "customer_id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_staff_email",
                 table: "staff",
                 column: "email",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_unavailable_part_requests_customer_id",
+                table: "unavailable_part_requests",
+                column: "customer_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Vehicles_CustomerId",
@@ -273,16 +461,28 @@ namespace VehicleX.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "customer_purchase_items");
+
+            migrationBuilder.DropTable(
                 name: "PurchaseItems");
 
             migrationBuilder.DropTable(
                 name: "SalesInvoiceItems");
 
             migrationBuilder.DropTable(
+                name: "service_reviews");
+
+            migrationBuilder.DropTable(
                 name: "staff");
 
             migrationBuilder.DropTable(
+                name: "unavailable_part_requests");
+
+            migrationBuilder.DropTable(
                 name: "Vehicles");
+
+            migrationBuilder.DropTable(
+                name: "customer_purchases");
 
             migrationBuilder.DropTable(
                 name: "Parts");
@@ -294,10 +494,13 @@ namespace VehicleX.Infrastructure.Migrations
                 name: "SalesInvoices");
 
             migrationBuilder.DropTable(
+                name: "appointments");
+
+            migrationBuilder.DropTable(
                 name: "Vendors");
 
             migrationBuilder.DropTable(
-                name: "Customers");
+                name: "customers");
         }
     }
 }

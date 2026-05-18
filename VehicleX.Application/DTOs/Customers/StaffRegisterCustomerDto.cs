@@ -22,5 +22,5 @@ public class StaffRegisterCustomerDto
     public string? Address { get; set; }
 
     [Required(ErrorMessage = "Vehicle details are required.")]
-    public CreateVehicleDto Vehicle { get; set; } = new();
+    public CreateCustomerVehicleDto Vehicle { get; set; } = new();
 }

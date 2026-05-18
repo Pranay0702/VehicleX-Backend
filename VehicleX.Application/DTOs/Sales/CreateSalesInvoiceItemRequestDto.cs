@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace VehicleX.Application.DTOs;
+namespace VehicleX.Application.DTOs.Sales;
 
 public class CreateSalesInvoiceItemRequestDto
 {

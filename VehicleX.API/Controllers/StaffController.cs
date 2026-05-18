@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using VehicleX.Application.Common;
-using VehicleX.Application.DTOs;
+using VehicleX.Application.DTOs.Staff;
 using VehicleX.Application.Interfaces.Services;
 
 namespace VehicleX.Controllers;
 
 [ApiController]
 [Route("api/staff")]
-public class StaffController : ControllerBase
+public class StaffController : ApiControllerBase
 {
     private readonly IStaffService _staffService;
 
@@ -78,14 +78,5 @@ public class StaffController : ControllerBase
     {
         var result = await _staffService.DeleteAsync(id, cancellationToken);
         return ToActionResult(result);
-    }
-
-    private ObjectResult ToActionResult<T>(ServiceResult<T> result)
-    {
-        var response = result.Success
-            ? ApiResponse<T>.Ok(result.Data, result.Message)
-            : ApiResponse<T>.Fail(result.Message, result.Errors);
-
-        return StatusCode(result.StatusCode, response);
     }
 }

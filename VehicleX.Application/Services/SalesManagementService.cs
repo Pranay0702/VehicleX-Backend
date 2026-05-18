@@ -1,7 +1,7 @@
-using System.Net;
 using Microsoft.Extensions.Logging;
 using VehicleX.Application.Common;
-using VehicleX.Application.DTOs;
+using VehicleX.Application.DTOs.Sales;
+using VehicleX.Application.DTOs.Shared;
 using VehicleX.Application.Interfaces.Repositories;
 using VehicleX.Application.Interfaces.Services;
 using VehicleX.Domain.Entities;
@@ -33,7 +33,7 @@ public class SalesManagementService : ISalesManagementService
         _logger = logger;
     }
 
-    public async Task<ServiceResult<List<CustomerLookupDto>>> GetCustomersAsync(CancellationToken cancellationToken = default)
+    public async Task<ApiResponse<List<CustomerLookupDto>>> GetCustomersAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -48,16 +48,16 @@ public class SalesManagementService : ISalesManagementService
                 })
                 .ToList();
 
-            return ServiceResult<List<CustomerLookupDto>>.Ok(response, "Customers fetched successfully.");
+            return ApiResponse<List<CustomerLookupDto>>.Ok(response, "Customers fetched successfully.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while fetching customers.");
-            return ServiceResult<List<CustomerLookupDto>>.Fail("Unable to fetch customers right now.", (int)HttpStatusCode.InternalServerError);
+            return ApiResponse<List<CustomerLookupDto>>.Fail("Unable to fetch customers right now.");
         }
     }
 
-    public async Task<ServiceResult<List<PartLookupDto>>> GetPartsAsync(CancellationToken cancellationToken = default)
+    public async Task<ApiResponse<List<PartLookupDto>>> GetPartsAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -74,16 +74,16 @@ public class SalesManagementService : ISalesManagementService
                 })
                 .ToList();
 
-            return ServiceResult<List<PartLookupDto>>.Ok(response, "Parts fetched successfully.");
+            return ApiResponse<List<PartLookupDto>>.Ok(response, "Parts fetched successfully.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while fetching parts.");
-            return ServiceResult<List<PartLookupDto>>.Fail("Unable to fetch parts right now.", (int)HttpStatusCode.InternalServerError);
+            return ApiResponse<List<PartLookupDto>>.Fail("Unable to fetch parts right now.");
         }
     }
 
-    public async Task<ServiceResult<SalesInvoiceResponseDto>> CreateSalesInvoiceAsync(
+    public async Task<ApiResponse<SalesInvoiceResponseDto>> CreateSalesInvoiceAsync(
         CreateSalesInvoiceRequestDto request,
         CancellationToken cancellationToken = default)
     {
@@ -91,9 +91,8 @@ public class SalesManagementService : ISalesManagementService
         {
             if (request.Items is null || request.Items.Count == 0)
             {
-                return ServiceResult<SalesInvoiceResponseDto>.Fail(
-                    "At least one sales item is required.",
-                    (int)HttpStatusCode.BadRequest);
+                return ApiResponse<SalesInvoiceResponseDto>.Fail(
+                    "At least one sales item is required.");
             }
 
             var duplicatePartIds = request.Items
@@ -104,15 +103,14 @@ public class SalesManagementService : ISalesManagementService
 
             if (duplicatePartIds.Count > 0)
             {
-                return ServiceResult<SalesInvoiceResponseDto>.Fail(
-                    $"Duplicate part entries are not allowed. Duplicate Part IDs: {string.Join(", ", duplicatePartIds)}",
-                    (int)HttpStatusCode.BadRequest);
+                return ApiResponse<SalesInvoiceResponseDto>.Fail(
+                    $"Duplicate part entries are not allowed. Duplicate Part IDs: {string.Join(", ", duplicatePartIds)}");
             }
 
             var customer = await _customerRepository.GetByIdAsync(request.CustomerId, cancellationToken);
             if (customer is null)
             {
-                return ServiceResult<SalesInvoiceResponseDto>.Fail("Customer not found.", (int)HttpStatusCode.NotFound);
+                return ApiResponse<SalesInvoiceResponseDto>.Fail("Customer not found.");
             }
 
             var requestedPartIds = request.Items.Select(item => item.PartId).Distinct().ToList();
@@ -132,9 +130,8 @@ public class SalesManagementService : ISalesManagementService
 
             if (missingPartIds.Count > 0)
             {
-                return ServiceResult<SalesInvoiceResponseDto>.Fail(
-                    $"Part(s) not found: {string.Join(", ", missingPartIds)}.",
-                    (int)HttpStatusCode.NotFound);
+                return ApiResponse<SalesInvoiceResponseDto>.Fail(
+                    $"Part(s) not found: {string.Join(", ", missingPartIds)}.");
             }
 
             foreach (var requestedItem in request.Items)
@@ -143,23 +140,20 @@ public class SalesManagementService : ISalesManagementService
 
                 if (requestedItem.Quantity <= 0)
                 {
-                    return ServiceResult<SalesInvoiceResponseDto>.Fail(
-                        $"Quantity for part '{part.Name}' must be greater than 0.",
-                        (int)HttpStatusCode.BadRequest);
+                    return ApiResponse<SalesInvoiceResponseDto>.Fail(
+                        $"Quantity for part '{part.Name}' must be greater than 0.");
                 }
 
                 if (part.Price < 0)
                 {
-                    return ServiceResult<SalesInvoiceResponseDto>.Fail(
-                        $"Part '{part.Name}' has invalid unit price configured.",
-                        (int)HttpStatusCode.InternalServerError);
+                    return ApiResponse<SalesInvoiceResponseDto>.Fail(
+                        $"Part '{part.Name}' has invalid unit price configured.");
                 }
 
                 if (part.StockQuantity < requestedItem.Quantity)
                 {
-                    return ServiceResult<SalesInvoiceResponseDto>.Fail(
-                        $"Insufficient stock for part '{part.Name}'. Available: {part.StockQuantity}, Requested: {requestedItem.Quantity}.",
-                        (int)HttpStatusCode.Conflict);
+                    return ApiResponse<SalesInvoiceResponseDto>.Fail(
+                        $"Insufficient stock for part '{part.Name}'. Available: {part.StockQuantity}, Requested: {requestedItem.Quantity}.");
                 }
             }
 
@@ -219,20 +213,19 @@ public class SalesManagementService : ISalesManagementService
                     })
                     .ToList()
             };
-
-            return ServiceResult<SalesInvoiceResponseDto>.Ok(
+            
+            return ApiResponse<SalesInvoiceResponseDto>.Ok(
                 response,
-                "Sales invoice created successfully and stock was updated.",
-                (int)HttpStatusCode.Created);
+                "Sales invoice created successfully and stock was updated.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while creating sales invoice for CustomerId {CustomerId}.", request.CustomerId);
-            return ServiceResult<SalesInvoiceResponseDto>.Fail("Unable to create sales invoice right now.", (int)HttpStatusCode.InternalServerError);
+            return ApiResponse<SalesInvoiceResponseDto>.Fail("Unable to create sales invoice right now.");
         }
     }
 
-    public async Task<ServiceResult<SalesInvoiceResponseDto>> GetSalesInvoiceByIdAsync(
+    public async Task<ApiResponse<SalesInvoiceResponseDto>> GetSalesInvoiceByIdAsync(
         int invoiceId,
         CancellationToken cancellationToken = default)
     {
@@ -240,16 +233,15 @@ public class SalesManagementService : ISalesManagementService
         {
             if (invoiceId <= 0)
             {
-                return ServiceResult<SalesInvoiceResponseDto>.Fail(
-                    "InvoiceId must be greater than 0.",
-                    (int)HttpStatusCode.BadRequest);
+                return ApiResponse<SalesInvoiceResponseDto>.Fail(
+                    "InvoiceId must be greater than 0.");
             }
 
             var invoice = await _salesInvoiceRepository.GetByIdWithItemsAsync(invoiceId, cancellationToken);
 
             if (invoice is null)
             {
-                return ServiceResult<SalesInvoiceResponseDto>.Fail("Sales invoice not found.", (int)HttpStatusCode.NotFound);
+                return ApiResponse<SalesInvoiceResponseDto>.Fail("Sales invoice not found.");
             }
 
             var partLookup = new Dictionary<int, Part>();
@@ -287,12 +279,12 @@ public class SalesManagementService : ISalesManagementService
                     .ToList()
             };
 
-            return ServiceResult<SalesInvoiceResponseDto>.Ok(response, "Sales invoice fetched successfully.");
+            return ApiResponse<SalesInvoiceResponseDto>.Ok(response, "Sales invoice fetched successfully.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while fetching invoice {InvoiceId}.", invoiceId);
-            return ServiceResult<SalesInvoiceResponseDto>.Fail("Unable to fetch sales invoice right now.", (int)HttpStatusCode.InternalServerError);
+            return ApiResponse<SalesInvoiceResponseDto>.Fail("Unable to fetch sales invoice right now.");
         }
     }
 

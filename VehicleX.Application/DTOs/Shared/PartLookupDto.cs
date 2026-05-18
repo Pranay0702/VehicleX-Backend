@@ -1,5 +1,4 @@
-namespace VehicleX.Application.DTOs;
-
+namespace VehicleX.Application.DTOs.Shared;
 public class PartLookupDto
 {
     public int Id { get; set; }

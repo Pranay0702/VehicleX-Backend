@@ -1,6 +1,6 @@
 using VehicleX.Domain.Enums;
 
-namespace VehicleX.Application.DTOs;
+namespace VehicleX.Application.DTOs.Staff;
 
 public class StaffResponse
 {

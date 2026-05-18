@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
@@ -7,7 +7,12 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Folder Include="DTOs\Appointments\" />
         <Folder Include="DTOs\Common\" />
+        <Folder Include="DTOs\Sales\" />
+        <Folder Include="DTOs\ServiceReviews\" />
+        <Folder Include="DTOs\Shared\" />
+        <Folder Include="DTOs\Staff\" />
     </ItemGroup>
 
     <ItemGroup>

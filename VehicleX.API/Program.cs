@@ -7,13 +7,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using VehicleX.API.Middleware;
 using VehicleX.Application.Common;
-using VehicleX.Application.Interfaces.Repositories;
+using VehicleX.API.BackgroundServices;
+using VehicleX.Application;
 using VehicleX.Application.Interfaces.Services;
 using VehicleX.Application.Services;
 using VehicleX.Infrastructure;
 using VehicleX.Infrastructure.Data;
-using VehicleX.Infrastructure.Repositories;
-using VehicleX.Infrastructure.Services;
 
 var possibleEnvPaths = new[]
 {
@@ -80,9 +79,9 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience         = true,
         ValidateLifetime         = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = Environment.GetEnvironmentVariable("Jwt__Issuer") ?? builder.Configuration["Jwt:Issuer"],
+        ValidIssuer   = Environment.GetEnvironmentVariable("Jwt__Issuer")   ?? builder.Configuration["Jwt:Issuer"],
         ValidAudience = Environment.GetEnvironmentVariable("Jwt__Audience") ?? builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
     };
 });
 
@@ -102,37 +101,24 @@ var adminEmail = Environment.GetEnvironmentVariable("AdminSettings__Email");
 if (!string.IsNullOrWhiteSpace(adminEmail))
     builder.Configuration["AdminSettings:Email"] = adminEmail;
 
-// Repositories
-builder.Services.AddScoped<IVendorRepository,          VendorRepository>();
-builder.Services.AddScoped<IPartRepository,            PartRepository>();
-builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
-builder.Services.AddScoped<ISalesInvoiceRepository, SalesInvoiceRepository>();
-builder.Services.AddScoped<IPurchaseInvoiceRepository, PurchaseInvoiceRepository>();
-builder.Services.AddScoped<IPurchaseRepository, PurchaseRepository>();
 
-// Services
-builder.Services.AddScoped<IVendorService,             VendorService>();
-builder.Services.AddScoped<IPartService,               PartService>();
-builder.Services.AddScoped<ICustomerService,           CustomerService>();
-builder.Services.AddScoped<IStaffService,              StaffService>();
-builder.Services.AddScoped<IFinancialReportService,    FinancialReportService>();
-builder.Services.AddScoped<ICustomerReportService,     CustomerReportService>();
-builder.Services.AddScoped<IJwtTokenService,           JwtTokenService>();
-builder.Services.AddScoped<ISalesManagementService,    SalesManagementService>();
-builder.Services.AddScoped<IPurchaseService,           PurchaseService>();
-builder.Services.AddScoped<IRepositoryManager,         RepositoryManager>();
+
+// Email & notifications
 builder.Services.Configure<VehicleX.Application.DTOs.Email.EmailSettings>(
     builder.Configuration.GetSection("EmailSettings"));
-builder.Services.AddScoped<IEmailService, VehicleX.Infrastructure.Email.EmailService>();
+builder.Services.AddScoped<IEmailService,        VehicleX.Infrastructure.Email.EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddHostedService<VehicleX.API.BackgroundServices.NotificationBackgroundService>();
+builder.Services.AddHostedService<NotificationBackgroundService>();
+
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddApplicationServices();
 
 // Controllers
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.PropertyNamingPolicy      = System.Text.Json.JsonNamingPolicy.CamelCase;
-        options.JsonSerializerOptions.DefaultIgnoreCondition    = JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.PropertyNamingPolicy   = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     })
     .ConfigureApiBehaviorOptions(options =>
@@ -161,21 +147,21 @@ builder.Services.AddSwaggerGen(c =>
 });
 builder.Services.AddOpenApi();
 
-// CORS 
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
         policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 });
 
-// Logging 
+// Logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 var app = builder.Build();
 
-app.UseGlobalExceptionMiddleware(); 
+app.UseGlobalExceptionMiddleware();
 app.UseCors("AllowFrontend");
 
 if (app.Environment.IsDevelopment())

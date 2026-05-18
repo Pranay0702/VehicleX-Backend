@@ -1,14 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using VehicleX.Application.Common;
-using VehicleX.Application.DTOs;
+using VehicleX.Application.DTOs.Shared;
+using VehicleX.Application.DTOs.Sales;
 using VehicleX.Application.Interfaces.Services;
-using AppCommon = VehicleX.Application.Common;
 
-namespace VehicleX.API.Controllers;
+namespace VehicleX.Controllers;
 
 [ApiController]
 [Route("api/sales")]
-public class SalesManagementController : ControllerBase
+public class SalesManagementController : ApiControllerBase
 {
     private readonly ISalesManagementService _salesManagementService;
 
@@ -23,7 +23,7 @@ public class SalesManagementController : ControllerBase
     public async Task<IActionResult> GetCustomers(CancellationToken cancellationToken)
     {
         var result = await _salesManagementService.GetCustomersAsync(cancellationToken);
-        return MapResult(result);
+        return ToActionResult(result);
     }
 
     [HttpGet("parts")]
@@ -32,7 +32,7 @@ public class SalesManagementController : ControllerBase
     public async Task<IActionResult> GetParts(CancellationToken cancellationToken)
     {
         var result = await _salesManagementService.GetPartsAsync(cancellationToken);
-        return MapResult(result);
+        return ToActionResult(result);
     }
 
     [HttpPost("invoices")]
@@ -47,17 +47,13 @@ public class SalesManagementController : ControllerBase
     {
         var result = await _salesManagementService.CreateSalesInvoiceAsync(request, cancellationToken);
 
-        if (result.Success && result.Data is not null)
-        {
-            var successResponse = ApiResponse<SalesInvoiceResponseDto>.SuccessResponse(result.Message, result.Data);
+        if (!result.Success)
+            return ToActionResult(result);
 
-            return CreatedAtAction(
-                nameof(GetSalesInvoiceById),
-                new { invoiceId = result.Data.InvoiceId },
-                successResponse);
-        }
-
-        return MapResult(result);
+        return CreatedAtAction(
+            nameof(GetSalesInvoiceById),
+            new { invoiceId = result.Data!.InvoiceId },
+            ApiResponse<SalesInvoiceResponseDto>.Ok(result.Data, result.Message));
     }
 
     [HttpGet("invoices/{invoiceId:int}")]
@@ -68,19 +64,6 @@ public class SalesManagementController : ControllerBase
     public async Task<IActionResult> GetSalesInvoiceById(int invoiceId, CancellationToken cancellationToken)
     {
         var result = await _salesManagementService.GetSalesInvoiceByIdAsync(invoiceId, cancellationToken);
-        return MapResult(result);
-    }
-
-    private IActionResult MapResult<T>(AppCommon.ServiceResult<T> result)
-    {
-        if (result.Success && result.Data is not null)
-        {
-            return StatusCode(result.StatusCode, ApiResponse<T>.SuccessResponse(result.Message, result.Data));
-        }
-
-        var flattenedErrors = result.Errors?.SelectMany(error => error.Value).ToList() ?? new List<string> { result.Message };
-        var errorResponse = ApiResponse<object>.Failure(result.Message, flattenedErrors);
-        var statusCode = result.StatusCode <= 0 ? StatusCodes.Status500InternalServerError : result.StatusCode;
-        return StatusCode(statusCode, errorResponse);
+        return ToActionResult(result);
     }
 }
